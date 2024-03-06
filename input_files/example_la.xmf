@@ -1,0 +1,31 @@
+<?xml version="1.0" ?>
+<!DOCTYPE Xdmf SYSTEM "Xdmf.dtd">
+<Xdmf Version="2.0" xmlns:xi="http://www.w3.org/2001/XInclude">
+<Domain>
+   <DataItem Name="la" Format="HDF" DataType="Float" Precision="8" Dimensions="301 3 3">
+        example_la.h5:/samples
+   </DataItem>
+  <Grid GridType="Collection" CollectionType="Spatial">
+   <Grid Name="Group1">
+     <Topology TopologyType="3DCoRectMesh" Dimensions="301 3 3"/>
+     <Geometry GeometryType="ORIGIN_DXDYDZ">
+   <DataItem Name="origin" Format="XML" DataType="Float" Precision="8" Dimensions="3">
+                        -305.0000000000
+                       -1205.0000000000
+                       -1205.0000000000
+   </DataItem>
+   <DataItem Name="step" Format="XML" DataType="Float" Precision="8" Dimensions="3">
+                           1.0333333333
+                        1205.0000000000
+                        1205.0000000000
+   </DataItem>
+     </Geometry>
+     <Attribute Name="la" Center="Node" AttributeType="Scalar">
+       <DataItem Reference="XML">
+         /Xdmf/Domain/DataItem[@Name="la"]
+       </DataItem>
+     </Attribute>
+   </Grid>
+  </Grid>
+ </Domain>
+</Xdmf>
