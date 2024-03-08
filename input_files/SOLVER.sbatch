@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name=SOLVER 
 #SBATCH --nodes=1
-#SBATCH --ntasks=4
+#SBATCH --ntasks=32
 #SBATCH --time=00:30:00
 #SBATCH --output=ro.txt 
 #SBATCH --error=re.txt 
