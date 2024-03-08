@@ -123,6 +123,10 @@ class Capteur(object):
                         ts[cc] = self.data['StressDev'][:,self.c2d('StressDev',c),m]
             tts[str(m)] = ts
         return tts
+    
+    def displ_values(self, m, direction='x'):
+        v = 'Displ'
+        return self.data[v][:,self.c2d(v,components[v][direction]),m]
 
     def plot(self,var,rdr,mon,hfg=None,svf=False,**kwargs):
         for m in mon:
