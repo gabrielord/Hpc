@@ -40,18 +40,142 @@ prorep=false;
 prorep_iter=200000;
 restart_iter=0;
 
-# introduce a source
+# introduce a source for monitor 0 for direction x
 source {
     # coordinates of the sources (x,y,z)
-    coords = 0. 0. -250.;
+    coords = 0. 0. 0.;
     # Type (1.Impulse, 2.moment, 3.fluidpulse)
     type = impulse;
     # Direction 0.x,1.y ou 2.z (only for Impulse)
-    dir = 1 1 1 ;
+    dir = 1 0 0 ;
     # Source Time Function (STF)
     func = file;
     # Read STF from external file
-    time_file = "gaussian_stf.txt";
+    time_file = "monitor_0_x.txt";
+    # Scaling amplitude
+    amplitude = 1.;
+};
+# introduce a source for monitor 0 for direction y
+source {
+    # coordinates of the sources (x,y,z)
+    coords = 0. 0. 0.;
+    # Type (1.Impulse, 2.moment, 3.fluidpulse)
+    type = impulse;
+    # Direction 0.x,1.y ou 2.z (only for Impulse)
+    dir = 0 1 0 ;
+    # Source Time Function (STF)
+    func = file;
+    # Read STF from external file
+    time_file = "monitor_0_y.txt";
+    # Scaling amplitude
+    amplitude = 1.;
+};
+# introduce a source for monitor 0 for direction z
+source {
+    # coordinates of the sources (x,y,z)
+    coords = 0. 0. 0.;
+    # Type (1.Impulse, 2.moment, 3.fluidpulse)
+    type = impulse;
+    # Direction 0.x,1.y ou 2.z (only for Impulse)
+    dir = 0 0 1 ;
+    # Source Time Function (STF)
+    func = file;
+    # Read STF from external file
+    time_file = "monitor_0_z.txt";
+    # Scaling amplitude
+    amplitude = 1.;
+};
+
+# introduce a source for monitor 1 for direction x
+source {
+    # coordinates of the sources (x,y,z)
+    coords = 0. 0. -1.;
+    # Type (1.Impulse, 2.moment, 3.fluidpulse)
+    type = impulse;
+    # Direction 0.x,1.y ou 2.z (only for Impulse)
+    dir = 1 0 0 ;
+    # Source Time Function (STF)
+    func = file;
+    # Read STF from external file
+    time_file = "monitor_1_x.txt";
+    # Scaling amplitude
+    amplitude = 1.;
+};
+# introduce a source for monitor 1 for direction y
+source {
+    # coordinates of the sources (x,y,z)
+    coords = 0. 0. -1.;
+    # Type (1.Impulse, 2.moment, 3.fluidpulse)
+    type = impulse;
+    # Direction 0.x,1.y ou 2.z (only for Impulse)
+    dir = 0 1 0 ;
+    # Source Time Function (STF)
+    func = file;
+    # Read STF from external file
+    time_file = "monitor_1_y.txt";
+    # Scaling amplitude
+    amplitude = 1.;
+};
+# introduce a source for monitor 1 for direction z
+source {
+    # coordinates of the sources (x,y,z)
+    coords = 0. 0. -1.;
+    # Type (1.Impulse, 2.moment, 3.fluidpulse)
+    type = impulse;
+    # Direction 0.x,1.y ou 2.z (only for Impulse)
+    dir = 0 0 1 ;
+    # Source Time Function (STF)
+    func = file;
+    # Read STF from external file
+    time_file = "monitor_1_z.txt";
+    # Scaling amplitude
+    amplitude = 1.;
+};
+
+# introduce a source for monitor 2 for direction x
+source {
+    # coordinates of the sources (x,y,z)
+    coords = 0. 0. -2.;
+    # Type (1.Impulse, 2.moment, 3.fluidpulse)
+    type = impulse;
+    # Direction 0.x,1.y ou 2.z (only for Impulse)
+    dir = 1 0 0 ;
+    # Source Time Function (STF)
+    func = file;
+    # Read STF from external file
+    time_file = "monitor_2_x.txt";
+    # Scaling amplitude
+    amplitude = 1.;
+};
+
+# introduce a source for monitor 2 for direction y
+source {
+    # coordinates of the sources (x,y,z)
+    coords = 0. 0. -2.;
+    # Type (1.Impulse, 2.moment, 3.fluidpulse)
+    type = impulse;
+    # Direction 0.x,1.y ou 2.z (only for Impulse)
+    dir = 0 1 0 ;
+    # Source Time Function (STF)
+    func = file;
+    # Read STF from external file
+    time_file = "monitor_2_y.txt";
+    # Scaling amplitude
+    amplitude = 1.;
+};
+
+# introduce a source for monitor 2 for direction z
+source {
+    # coordinates of the sources (x,y,z)
+    coords = 0. 0. -2.;
+    # Type (1.Impulse, 2.moment, 3.fluidpulse)
+    type = impulse;
+    # Direction 0.x,1.y ou 2.z (only for Impulse)
+    dir = 0 0 1 ;
+    # Source Time Function (STF)
+    func = file;
+    # Read STF from external file
+    time_file = "monitor_2_z.txt";
     # Scaling amplitude
     amplitude = 1.;
 };
