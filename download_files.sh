@@ -16,8 +16,10 @@ local_destination="${!#}"
 download_file() {
     local file="$1"
     local local_destination="$2"
-    sshpass -p "$PASSWORD_SERVER" scp -r st76s_6@chome.metz.supelec.fr:/usr/users/st76s/st76s_6/SEM3D_ST7_project/"$file"  "$local_destination"
-    echo "File $file uploaded to $local_destination"
+    echo "Downloading file $file to $local_destination"
+    #sshpass -p "$PASSWORD_SERVER" scp -r st76s_6@chome.metz.supelec.fr:/usr/users/st76s/st76s_6/SEM3D_ST7_project/"$file"  "$local_destination"
+    scp -r st76s_6@chome.metz.supelec.fr:/usr/users/st76s/st76s_6/SEM3D_ST7_project/"$file"  "$local_destination"
+    echo "==> File $file uploaded to $local_destination"
 }
 
 # Loop through all the arguments except the last one
