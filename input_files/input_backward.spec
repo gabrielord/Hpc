@@ -51,7 +51,7 @@ source {
     # Source Time Function (STF)
     func = file;
     # Read STF from external file
-    time_file = "monitor_0_x.txt";
+    time_file = "monitors_misfit/monitor_0_x.txt";
     # Scaling amplitude
     amplitude = 1.;
 };
@@ -66,7 +66,7 @@ source {
     # Source Time Function (STF)
     func = file;
     # Read STF from external file
-    time_file = "monitor_0_y.txt";
+    time_file = "monitors_misfit/monitor_0_y.txt";
     # Scaling amplitude
     amplitude = 1.;
 };
@@ -81,7 +81,7 @@ source {
     # Source Time Function (STF)
     func = file;
     # Read STF from external file
-    time_file = "monitor_0_z.txt";
+    time_file = "monitors_misfit/monitor_0_z.txt";
     # Scaling amplitude
     amplitude = 1.;
 };
@@ -97,7 +97,7 @@ source {
     # Source Time Function (STF)
     func = file;
     # Read STF from external file
-    time_file = "monitor_1_x.txt";
+    time_file = "monitors_misfit/monitor_1_x.txt";
     # Scaling amplitude
     amplitude = 1.;
 };
@@ -112,7 +112,7 @@ source {
     # Source Time Function (STF)
     func = file;
     # Read STF from external file
-    time_file = "monitor_1_y.txt";
+    time_file = "monitors_misfit/monitor_1_y.txt";
     # Scaling amplitude
     amplitude = 1.;
 };
@@ -127,7 +127,7 @@ source {
     # Source Time Function (STF)
     func = file;
     # Read STF from external file
-    time_file = "monitor_1_z.txt";
+    time_file = "monitors_misfit/monitor_1_z.txt";
     # Scaling amplitude
     amplitude = 1.;
 };
@@ -143,7 +143,7 @@ source {
     # Source Time Function (STF)
     func = file;
     # Read STF from external file
-    time_file = "monitor_2_x.txt";
+    time_file = "monitors_misfit/monitor_2_x.txt";
     # Scaling amplitude
     amplitude = 1.;
 };
@@ -159,7 +159,7 @@ source {
     # Source Time Function (STF)
     func = file;
     # Read STF from external file
-    time_file = "monitor_2_y.txt";
+    time_file = "monitors_misfit/monitor_2_y.txt";
     # Scaling amplitude
     amplitude = 1.;
 };
@@ -175,7 +175,7 @@ source {
     # Source Time Function (STF)
     func = file;
     # Read STF from external file
-    time_file = "monitor_2_z.txt";
+    time_file = "monitors_misfit/monitor_2_z.txt";
     # Scaling amplitude
     amplitude = 1.;
 };
