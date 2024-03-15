@@ -1,4 +1,4 @@
 .env
 
-*/res/*
-*/traces/*
+*/res*
+*/traces*

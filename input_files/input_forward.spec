@@ -24,11 +24,6 @@ save_traces   = true;
 traces_format = hdf5;
 #traces_format = text;
 
-capteurs "Uobs" {
-    type   = points;
-    file   = "stations.txt";
-    period = 1; 
-};
 capteurs "Mesh1DLambdaMu" {
     type   = points;
     file   = "stations_z.txt";
