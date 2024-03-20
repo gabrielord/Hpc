@@ -12,16 +12,3 @@ def calibrate_parameters():
 
 if __name__ == "__main__":
     calibrate_parameters()
-    opt = {'wkd':'./input_files/traces2/',
-           'fmt':'h5',
-           'nam':['Source'],
-           'var':['Displ'],
-           'rdr':['x','y','z'],
-           'mon':[0, 1, 2]}
-    stream = parse(**opt)
-    print("Database parsed!")
-    trace = list(stream.values())[0]
-    plt.figsize=(10, 5)
-    plt.title("Displacement in x direction at source after\nsoliving the backward problem.")
-    plt.plot(trace.Time, trace.displ_values(0, 'x'))
-    plt.savefig("backward_pb.png")

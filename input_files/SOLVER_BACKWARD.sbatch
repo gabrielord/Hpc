@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=SOLVER 
+#SBATCH --job-name=SOLVER_BACKWARD
 #SBATCH --nodes=1
 #SBATCH --ntasks=32
 #SBATCH --time=00:30:00

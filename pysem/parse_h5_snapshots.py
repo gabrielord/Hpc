@@ -184,10 +184,9 @@ def ParseCL():
         Parse command line flags
     """
     parser = argparse.ArgumentParser(prefix_chars='@')
-    parser.add_argument('@@wkd',type=str,default='./res',help="Path to res directory")
-    parser.add_argument('@@var',type=str,nargs='+',default=['Mass','Jac','Mu','Lamb',
-                                                            'Elements','ElementsGlob',
-                                                            'Dom','displ',
+    parser.add_argument('@@wkd',type=str,default='./input_files/res_backward',help="Path to res directory")
+    parser.add_argument('@@var',type=str,nargs='+',default=['Mass','Nodes','Jac','Mu','Lamb',
+                                                            'ElementsGlob','displ',
                                                             'eps_vol','eps_dev_xx',
                                                             'eps_dev_yy','eps_dev_zz',
                                                             'eps_dev_xy','eps_dev_yz',
@@ -224,6 +223,10 @@ def main():
     hostname = MPI.Get_processor_name() # Get the hostname
     
     snp = GetSnapshots(comm,size,rank)
+
+    M = snp.dset["Mass"]
+    Elements = snp.dset["ElementsGlob"]
+    g_reg_lam = 
 
     # unique_values,count = np.unique(snp.dset['ElementsGlob'],return_counts=True)
     # print(unique_values,count)

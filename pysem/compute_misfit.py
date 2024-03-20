@@ -4,6 +4,7 @@ from parse_h5_traces import parse, components
 import matplotlib.pyplot as plt
 from scipy.interpolate import interp1d
 import time
+import os
 
 def plot_misfit(m, direction, trace_truth, trace_synthetic, misfit):
     """
@@ -69,6 +70,7 @@ def generate_misfit_files():
                 misfit = synthetic_extrapolated[::-1] - trace_truth.displ_values(m, direction)[::-1]
             else:
                 misfit = trace_synthetic.displ_values(m, direction)[::-1] - trace_truth.displ_values(m, direction)[::-1]
+            os.makedirs("input_files/monitors_misfit", exist_ok=True)
             with (open (f"input_files/monitors_misfit/misfit_{m}_{direction}.txt", "w")) as f:
                 for i in range(len(misfit)):
                     f.write(f"{trace_truth.Time[i]}, {misfit[i]}\n")
