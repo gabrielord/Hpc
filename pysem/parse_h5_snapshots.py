@@ -23,6 +23,7 @@ import numpy as np
 import h5py as hf
 import hashlib
 
+
 # General informations
 __author__ = "Filippo Gatti"
 __copyright__ = "Copyright 2020, CentraleSupélec (MSSMat UMR CNRS 8579)"
@@ -184,8 +185,8 @@ def ParseCL():
         Parse command line flags
     """
     parser = argparse.ArgumentParser(prefix_chars='@')
-    parser.add_argument('@@wkd',type=str,default='./res',help="Path to res directory")
-    parser.add_argument('@@var',type=str,nargs='+',default=['Mass','Jac','Mu','Lamb',
+    parser.add_argument('@@wkd',type=str,default='./HPC/input_files/res_forward/res',help="Path to res directory")
+    parser.add_argument('@@var',type=str,nargs='+',default=['Mass','Dens','Jac','Mu','Lamb',
                                                             'Elements','ElementsGlob',
                                                             'Dom','displ',
                                                             'eps_vol','eps_dev_xx',
@@ -200,18 +201,23 @@ def ParseCL():
 def GetSnapshots(comm,size,rank):
 
     # Parse Command Line
-    opt = ParseCL()
-    opt["comm"] = comm
-    opt["size"] = size
-    opt["rank"] = rank
+    opt_forward = ParseCL()
+    opt_forward["comm"] = comm
+    opt_forward["size"] = size
+    opt_forward["rank"] = rank
     
+    opt_backward = ParseCL(wkd ='./HPC/input_files/res_backward/res')
+    opt_backward["comm"] = comm
+    opt_backward["size"] = size
+    opt_backward["rank"] = rank
     # Generate snapshot structure
-    snp = SnapshotsSEM3D(**opt)
-    
+    snp_forward = SnapshotsSEM3D(**opt_forward)
+    snp_backward = SnapshotsSEM3D(**opt_backward)
     # Parse result snapshots 
-    snp.parse()
+    snp_forward.parse()
+    snp_backward.parse()
 
-    return snp
+    return (snp_forward,snp_backward)
 
 def main():
     """
@@ -223,8 +229,28 @@ def main():
     rank = MPI.COMM_WORLD.Get_rank()    # Get the current rank
     hostname = MPI.Get_processor_name() # Get the hostname
     
-    snp = GetSnapshots(comm,size,rank)
+    (snp_forward,snp_backward) = GetSnapshots(comm,size,rank)
+    
+    #Récupération des données 
+    M = snp_forward.dset['Mass']/snp_forward.dset['Dens']
+    
 
+    eps_forw_ii = np.add(np.add(snp_forward.dset['eps_dev_xx'],snp_forward['eps_dev_yy']),snp_forward['eps_dev_zz'])
+    eps_back_ii = np.add(np.add(snp_backward['eps_dev_xx'],snp_backward['eps_dev_yy']),snp_backward['eps_dev_zz'])
+    eps_forw_ij = np.add(np.add(snp_forward['eps_dev_xy'],snp_forward['eps_dev_xz']),snp_forward['eps_dev_yz'])
+    eps_back_ij = np.add(np.add(snp_backward['eps_dev_xy'],snp_backward['eps_dev_xz']),snp_backward['eps_dev_yz'])
+    #Calcul intermédiaire 
+    
+    N = snp_forward.dset
+    Le = len(N)
+    N_transpose = np.transpose(N)
+    g_mis_inter_lamb = [np.dot(np.dot(N[x],eps_forw_ii[x][0]),eps_back_ii[x][0]) for x in range (Le)]
+    g_mis_inter_mu = [np.dot(N[x],(2*np.dot(eps_forw_ii[x][0],eps_back_ii[x][0])+np.dot(eps_forw_ij[x][0],eps_back_ij[x][0]))) for x in range (Le)]
+
+    M = np.sum(np.dot(N,N_transpose))
+    g_mis_lamb = np.sum(g_mis_inter_lamb)
+    g_mis_mu = np.sum(g_mis_inter_mu)
+    
     # unique_values,count = np.unique(snp.dset['ElementsGlob'],return_counts=True)
     # print(unique_values,count)
     MPI.Finalize()
