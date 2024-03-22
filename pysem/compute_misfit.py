@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 from scipy.interpolate import interp1d
 import time
 import os
+
 def plot_misfit(m, direction, trace_truth, trace_synthetic, misfit):
     """
     Function to display the misfit for monitor m according to a given direction

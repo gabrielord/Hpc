@@ -185,10 +185,16 @@ def ParseCL():
         Parse command line flags
     """
     parser = argparse.ArgumentParser(prefix_chars='@')
+<<<<<<< HEAD
     parser.add_argument('@@wkd',type=str,default='./HPC/input_files/res_forward/res',help="Path to res directory")
     parser.add_argument('@@var',type=str,nargs='+',default=['Mass','Dens','Jac','Mu','Lamb',
                                                             'Elements','ElementsGlob',
                                                             'Dom','displ',
+=======
+    parser.add_argument('@@wkd',type=str,default='./input_files/res_backward',help="Path to res directory")
+    parser.add_argument('@@var',type=str,nargs='+',default=['Mass','Nodes','Jac','Mu','Lamb',
+                                                            'ElementsGlob','displ',
+>>>>>>> 94403587625f70492ffbbe0cf5e3d65e38d78977
                                                             'eps_vol','eps_dev_xx',
                                                             'eps_dev_yy','eps_dev_zz',
                                                             'eps_dev_xy','eps_dev_yz',
@@ -235,6 +241,7 @@ def main():
     M = snp_forward.dset['Mass']/snp_forward.dset['Dens']
     
 
+<<<<<<< HEAD
     eps_forw_ii = np.add(np.add(snp_forward.dset['eps_dev_xx'],snp_forward['eps_dev_yy']),snp_forward['eps_dev_zz'])
     eps_back_ii = np.add(np.add(snp_backward['eps_dev_xx'],snp_backward['eps_dev_yy']),snp_backward['eps_dev_zz'])
     eps_forw_ij = np.add(np.add(snp_forward['eps_dev_xy'],snp_forward['eps_dev_xz']),snp_forward['eps_dev_yz'])
@@ -251,6 +258,12 @@ def main():
     g_mis_lamb = np.sum(g_mis_inter_lamb)
     g_mis_mu = np.sum(g_mis_inter_mu)
     
+=======
+    M = snp.dset["Mass"]
+    Elements = snp.dset["ElementsGlob"]
+    g_reg_lam = 
+
+>>>>>>> 94403587625f70492ffbbe0cf5e3d65e38d78977
     # unique_values,count = np.unique(snp.dset['ElementsGlob'],return_counts=True)
     # print(unique_values,count)
     MPI.Finalize()
