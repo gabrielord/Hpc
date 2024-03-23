@@ -13,6 +13,7 @@ Script to create h5 material files for SEM3D
 import argparse
 import h5py
 import numpy as np
+from scipy.interpolate import RegularGridInterpolator
 
 # General informations
 __author__ = "Filippo Gatti"
@@ -26,6 +27,55 @@ __status__ = "Beta"
 
 dirs_dict = {'x':0,'y':1,'z':2}
 trnsp = (2,1,0)
+
+def heterogeneous_mat(la, mu, nodes):
+    """
+    Function to create the new material for lambda and mu by interpolating the values
+    from la and mu on nodes to the grid points.
+    """
+    ### Definition of constants
+    step = 30
+    x_min, x_max = -1200, 1200
+    y_min, y_max = -1200, 1200
+    z_min, z_max = -300, 0
+    nx, ny, nz = (x_max - x_min)//step+1, (y_max - y_min)//step+1, (z_max - z_min)//step+1
+    lims = {'xmin':x_min, 'xmax':x_max, 'ymin':y_min, 'ymax':y_max, 'zmin':z_min, 'zmax':z_max, 'nx':nx, 'ny':ny, 'nz':nz}
+    pfx = 'example'
+    prop = ['la','mu']
+
+
+    ### Handle SEM3D data
+    # Get SEM3D nodes coordinates
+    sem_x, sem_y, sem_z = zip(*nodes)
+    sem_unique_x, sem_unique_y, sem_unique_z = np.unique(sem_x), np.unique(sem_y), np.unique(sem_z)
+    sem_grid = np.meshgrid(sem_unique_x, sem_unique_y, sem_unique_z)
+    # Reshape the SEM3D data
+    la = la.reshape(sem_grid[0].shape)
+    mu = mu.reshape(sem_grid[0].shape)
+
+    ### Handle the grid coordinates
+    # Create the grid
+    grd = grid(lims)
+    # Create list of points from the material grd
+    points_grd = np.array([np.ravel(i) for i in grd]).T
+
+    ### Calculate the new material
+    # Interpolate the values of lambda and mu on the grid points
+    mat_la = RegularGridInterpolator((sem_unique_x, sem_unique_y, sem_unique_z), la)(points_grd)
+    mat_mu = RegularGridInterpolator((sem_unique_x, sem_unique_y, sem_unique_z), mu)(points_grd)
+    # Reshape the interpolated values to the shape of the grid
+    mat_la = mat_la.reshape(grd[0].shape).transpose(*trnsp)
+    mat_mu = mat_mu.reshape(grd[0].shape).transpose(*trnsp)
+
+    ### Generate the material
+    # Definition of variable
+    mat = {'la':mat_la,'mu':mat_mu}
+    # Create the material
+    write_h5(pfx,prop,mat,lims)
+    write_xdmf(pfx,prop,mat,lims)
+
+    print("Material files generated successfully!")
+
 
 def base_smooth_heterogeneous(d,grd,nu=0.3):
     z = grd[d]
@@ -127,15 +177,19 @@ def write_xdmf(pfx,prop,mat,lims):
             fid.close()
 
 if __name__=='__main__':
+    step = 30
+    x_min, x_max = -1200, 1200
+    y_min, y_max = -1200, 1200
+    z_min, z_max = -300, 0
     
     parser = argparse.ArgumentParser(prefix_chars='@')
     parser.add_argument('@@prop',type=str,nargs='+',default= ['la','mu','ds','vp','vs'],help="list of properties to be generated")
     parser.add_argument('@@tag',type=str,default="linear_gradient",help="tag for material model")
     parser.add_argument('@@dir',type=str,default="z",help="Main gradient direction [x|y|z]")
-    parser.add_argument('@@xlim',type=float,nargs='*',default=[-45.0,45.0],help="Limits of the box [xmin xmax]")
-    parser.add_argument('@@ylim',type=float,nargs='*',default=[-45.0,45.0],help="Limits of the box [ymin ymax]")
-    parser.add_argument('@@zlim',type=float,nargs='*',default=[-65.0, 5.0],help="Limits of the box [zmin zmax]")
-    parser.add_argument('@@step',type=float,nargs='*',default=[101, 101, 281],help="Numbers of points per direction [nx ny nz]")
+    parser.add_argument('@@xlim',type=float,nargs='*',default=[x_min, x_max],help="Limits of the box [xmin xmax]")
+    parser.add_argument('@@ylim',type=float,nargs='*',default=[y_min, y_max],help="Limits of the box [ymin ymax]")
+    parser.add_argument('@@zlim',type=float,nargs='*',default=[z_min, z_max],help="Limits of the box [zmin zmax]")
+    parser.add_argument('@@step',type=float,nargs='*',default=[(x_max - x_min)//step+1, (y_max - y_min)//step+1, (z_max - z_min)//step+1],help="Numbers of points per direction [nx ny nz]")
     parser.add_argument('@@pfx',type=str,default="linear_gradient",help="File prefix")
     parser.add_argument('@@nu',type=float,default=0.3,help="Poisson's ratio")
     opt = parser.parse_args().__dict__
