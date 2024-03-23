@@ -26,7 +26,7 @@ traces_format = hdf5;
 
 capteurs "Mesh1DLambdaMu" {
     type   = points;
-    file   = "stations_z.txt";
+    file   = "stations_source.txt";
     period = 1; 
 };
 

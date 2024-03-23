@@ -70,7 +70,9 @@ def generate_misfit_files():
                 misfit = synthetic_extrapolated[::-1] - trace_truth.displ_values(m, direction)[::-1]
             else:
                 misfit = trace_synthetic.displ_values(m, direction)[::-1] - trace_truth.displ_values(m, direction)[::-1]
-            os.makedirs("input_files/monitors_misfit", exist_ok=True)
+            if not os.path.exists("./input_files/monitors_misfit"):
+            # Si le dossier n'existe pas, créez-le
+                os.makedirs("./input_files/monitors_misfit")
             with (open (f"input_files/monitors_misfit/misfit_{m}_{direction}.txt", "w")) as f:
                 for i in range(len(misfit)):
                     f.write(f"{trace_truth.Time[i]}, {misfit[i]}\n")

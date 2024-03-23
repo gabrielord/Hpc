@@ -1,6 +1,10 @@
 .env
-
+./pysem/parse_h5_traces.cpython-312.pyc
 */res*
 */traces*
+<<<<<<< HEAD
 
 **sandbox.*
+=======
+*/pysem/parse_h5_traces.cpython-312.pyc
+>>>>>>> 60ca4f77928e3ad708ad423274adad1e93325d5d
