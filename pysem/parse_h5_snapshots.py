@@ -241,7 +241,6 @@ def main():
     Elements = dset_fw["ElementsGlob"]
     Nodes = dset_fw["Nodes"]
     Jac = dset_fw["Jac"]
-    nb_snapshots = dset_fw["eps_vol"].shape[2]
     dt = 0.5
 
     ### Computation of problem variables 
