@@ -4,3 +4,5 @@
 */traces*
 
 **sandbox.*
+
+**/__pycache__

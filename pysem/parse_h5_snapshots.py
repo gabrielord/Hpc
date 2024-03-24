@@ -23,6 +23,7 @@ import numpy as np
 import h5py as hf
 import hashlib
 
+
 # General informations
 __author__ = "Filippo Gatti"
 __copyright__ = "Copyright 2020, CentraleSupélec (MSSMat UMR CNRS 8579)"
@@ -209,11 +210,9 @@ def GetSnapshots(comm,size,rank):
 
     opt_backward = opt.copy()
     opt_backward["wkd"] += "_backward"
-    
     # Generate snapshot structure
     snp_forward = SnapshotsSEM3D(**opt_forward)
-    snp_backward = SnapshotsSEM3D(**opt_forward)
-    
+    snp_backward = SnapshotsSEM3D(**opt_backward)
     # Parse result snapshots 
     snp_forward.parse()
     snp_backward.parse()
@@ -281,7 +280,7 @@ def main():
     ### Computation of g_lambda and g_mu
     g_lambda = (g_reg_lambda + g_mis_lambda)/M
     g_mu = (g_reg_mu + g_mis_mu)/M
-
+    
     # unique_values,count = np.unique(snp.dset['ElementsGlob'],return_counts=True)
     # print(unique_values,count)
     MPI.Finalize()
