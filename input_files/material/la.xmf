@@ -3,7 +3,7 @@
 <Xdmf Version="2.0" xmlns:xi="http://www.w3.org/2001/XInclude">
 <Domain>
    <DataItem Name="la" Format="HDF" DataType="Float" Precision="8" Dimensions="301 3 3">
-        example_la.h5:/samples
+        material/la.h5:/samples
    </DataItem>
   <Grid GridType="Collection" CollectionType="Spatial">
    <Grid Name="Group1">
