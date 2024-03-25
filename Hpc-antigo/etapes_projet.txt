@@ -1,0 +1,25 @@
+mat.dat 
+mater.in 
+input.spec
+
+
+1
+FORWARD(SEM3D): 1 SOURCE - Nr CAPTEURS
+
+input_forward.spec (une source et la liste de capteurs stations.txt - renommer à chaque boucle)
+
+material.spec (NG grid points: lambda.h5, mu.h5, rho.h5 --> modify_materialh5.py)
+
+
+2
+MISFIT(uSEM3D-uOBS) Nr CAPTEURS
+
+H = 1/2 sum_(i) || uSEM3D_i - uOBS_i ||**2
+
+3 
+BACKWARD(SEM3D): Nr SOURCES (AUX CAPTEURS) - NG
+
+input_backward.spec (Nr sources (aux Nr capteurs) de misfit (inversé en temps) et la liste de capteurs stations.txt - renommer à chaque boucle)
+
+4 
+UPDATE lambda(x),mu(x) (GRILLE DE NG POINTS)
