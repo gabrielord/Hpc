@@ -142,9 +142,9 @@ def main():
             for line in f:
                 grads.append(np.array(line.strip().split(), dtype=float))
 
-        grad_mu = grads[0]
+        grad_mu = grads[1]
     
-        grad_lamb = grads[1]
+        grad_lamb = grads[0]
         # Calculate the search direction
         write_output(f"\n==> [{get_current_time()}] Calculating the search direction...")
 
