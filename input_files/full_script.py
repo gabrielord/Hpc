@@ -131,12 +131,20 @@ def main():
         # Calculate the gradient
         write_output(f"\n==> [{get_current_time()}] Calculating the gradient...")
         cmd = f"mpirun -np 1 " + \
-              f"-map-by ppr:1:core:PE=1 " + \
-              f"python3 ../pysem/gradient.py"
-        f = open(f"output_files/gradient_{iter}.output", "w")
-        subprocess.run(cmd, shell=True, stdout=f)
-        f.close()
+        f"-map-by ppr:1:core:PE=1 " + \
+        f"python3 ../pysem/gradient.py " + \
+        f"{mu.tolist()} {lamb.tolist()} {R_lamb.tolist()} {R_mu.tolist()} {g_reg_lamb.tolist()} {g_reg_mu.tolist()} {g_lamb_mis.tolist()} {g_mu_mis.tolist()}"
 
+        subprocess.run(cmd, shell=True)
+
+        grads = []
+        with open("output.txt", "r") as f:
+            for line in f:
+                grads.append(np.array(line.strip().split(), dtype=float))
+
+        grad_mu = grads[0]
+    
+        grad_lamb = grads[1]
         # Calculate the search direction
         write_output(f"\n==> [{get_current_time()}] Calculating the search direction...")
 
