@@ -1,10 +1,10 @@
 #!/bin/bash
-#SBATCH --job-name=SOLVER_BACKWARD
+#SBATCH --job-name=FULL_PROJECT_SEISM
 #SBATCH --nodes=1
-#SBATCH --ntasks=32
+#SBATCH --ntasks=1
 #SBATCH --time=00:30:00
-#SBATCH --output=ro.txt 
-#SBATCH --error=re.txt 
+#SBATCH --output=output.txt
+#SBATCH --error=error.txt 
 #SBATCH --partition=cpu_prod
 
 # Définition des variables N_iter à 10 (nombre d'itérations), alpha_lamb, alpha_mu, c1, xi, et tol
@@ -16,14 +16,14 @@ export tol=1e-4
 
 # Premier sbatch
 sbatch "MESHER_FORWARD.sbatch"
-wait $!
-sbatch "SOLVER_FORWARD.sbatch"
-wait !$
-sbatch "MISFIT.sbatch"
-wait $!
-J =$(cat misfit.txt)
-# Boucle while pour lancer plusieurs jobs sbatch
-while [ "$J -le $tol" ]
+sbatch --dependency=afterok:$J "SOLVER_FORWARD.sbatch"
+J=$(sbatch --parsable --dependency=afterok:$J "MISFIT.sbatch")
+
+# Initialisation de l'itération
+iter=0
+
+# Boucle while tant que l'itération est inférieure à N_iter et que J est supérieur à tol
+while (( $iter < $N_iter )) && (( $(bc <<< "$J > $tol") ))
 do
     sbatch "MESHER_FORWARD.sbatch"
     wait $!
@@ -62,4 +62,5 @@ do
         J_k_1=sbatch "MISFIT.sbatch"
         J_k_1 = $(cat misfit.txt)
     done
+    ((iter++))
 done

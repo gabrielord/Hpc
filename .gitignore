@@ -2,5 +2,8 @@
 ./pysem/parse_h5_traces.cpython-312.pyc
 */res*
 */traces*
-*/pysem/parse_h5_traces.cpython-312.pyc
-*/parse_h5_traces.cpython-312.pyc
+
+**sandbox.*
+
+**/__pycache__/
+**/.ipynb_checkpoints/

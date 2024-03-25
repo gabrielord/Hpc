@@ -32,8 +32,8 @@ def plot_misfit(m, direction, trace_truth, trace_synthetic, misfit):
 
 def generate_misfit_files():
     # define options
-    opt = {'syd':'./input_files/traces_forward/',
-           'trd':'./Uobs/',
+    opt = {'syd':'forward/traces/',
+           'trd':'../Uobs/',
            'fmt':'h5',
            'nam':['all'],
            'var':['Displ'],
@@ -57,8 +57,6 @@ def generate_misfit_files():
     dt_gt = trace_truth.Time[1] - trace_truth.Time[0]
     dt_synth = trace_synthetic.Time[1] - trace_synthetic.Time[0]
 
-    date = time.time()
-
     for m in range(3):
         for direction in ['x','y','z']:
             print(f"Writing misfit file for monitor {m} and direction {direction}", end='\t')
@@ -70,10 +68,10 @@ def generate_misfit_files():
                 misfit = synthetic_extrapolated[::-1] - trace_truth.displ_values(m, direction)[::-1]
             else:
                 misfit = trace_synthetic.displ_values(m, direction)[::-1] - trace_truth.displ_values(m, direction)[::-1]
-            if not os.path.exists("./input_files/monitors_misfit"):
+            if not os.path.exists("monitors_misfit"):
             # Si le dossier n'existe pas, créez-le
-                os.makedirs("./input_files/monitors_misfit")
-            with (open (f"input_files/monitors_misfit/misfit_{m}_{direction}.txt", "w")) as f:
+                os.makedirs("monitors_misfit")
+            with (open (f"monitors_misfit/misfit_{m}_{direction}.txt", "w")) as f:
                 for i in range(len(misfit)):
                     f.write(f"{trace_truth.Time[i]}, {misfit[i]}\n")
                     

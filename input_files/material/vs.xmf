@@ -2,8 +2,8 @@
 <!DOCTYPE Xdmf SYSTEM "Xdmf.dtd">
 <Xdmf Version="2.0" xmlns:xi="http://www.w3.org/2001/XInclude">
 <Domain>
-   <DataItem Name="vp" Format="HDF" DataType="Float" Precision="8" Dimensions="301 3 3">
-        example_vp.h5:/samples
+   <DataItem Name="vs" Format="HDF" DataType="Float" Precision="8" Dimensions="301 3 3">
+        material/vs.h5:/samples
    </DataItem>
   <Grid GridType="Collection" CollectionType="Spatial">
    <Grid Name="Group1">
@@ -20,9 +20,9 @@
                         1205.0000000000
    </DataItem>
      </Geometry>
-     <Attribute Name="vp" Center="Node" AttributeType="Scalar">
+     <Attribute Name="vs" Center="Node" AttributeType="Scalar">
        <DataItem Reference="XML">
-         /Xdmf/Domain/DataItem[@Name="vp"]
+         /Xdmf/Domain/DataItem[@Name="vs"]
        </DataItem>
      </Attribute>
    </Grid>

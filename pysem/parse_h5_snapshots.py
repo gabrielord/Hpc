@@ -23,7 +23,6 @@ import numpy as np
 import h5py as hf
 import hashlib
 
-
 # General informations
 __author__ = "Filippo Gatti"
 __copyright__ = "Copyright 2020, CentraleSupélec (MSSMat UMR CNRS 8579)"
@@ -185,16 +184,9 @@ def ParseCL():
         Parse command line flags
     """
     parser = argparse.ArgumentParser(prefix_chars='@')
-<<<<<<< HEAD
-    parser.add_argument('@@wkd',type=str,default='./HPC/input_files/res_forward/res',help="Path to res directory")
-    parser.add_argument('@@var',type=str,nargs='+',default=['Mass','Dens','Jac','Mu','Lamb',
-                                                            'Elements','ElementsGlob',
-                                                            'Dom','displ',
-=======
-    parser.add_argument('@@wkd',type=str,default='./input_files/res_backward',help="Path to res directory")
-    parser.add_argument('@@var',type=str,nargs='+',default=['Mass','Nodes','Jac','Mu','Lamb',
+    parser.add_argument('@@wkd',type=str,default='./input_files/res',help="Path to res directory")
+    parser.add_argument('@@var',type=str,nargs='+',default=['Mass', 'Dens','Nodes','Jac','Mu','Lamb',
                                                             'ElementsGlob','displ',
->>>>>>> 94403587625f70492ffbbe0cf5e3d65e38d78977
                                                             'eps_vol','eps_dev_xx',
                                                             'eps_dev_yy','eps_dev_zz',
                                                             'eps_dev_xy','eps_dev_yz',
@@ -207,23 +199,27 @@ def ParseCL():
 def GetSnapshots(comm,size,rank):
 
     # Parse Command Line
-    opt_forward = ParseCL()
-    opt_forward["comm"] = comm
-    opt_forward["size"] = size
-    opt_forward["rank"] = rank
-    
-    opt_backward = ParseCL(wkd ='./HPC/input_files/res_backward/res')
-    opt_backward["comm"] = comm
-    opt_backward["size"] = size
-    opt_backward["rank"] = rank
+    opt = ParseCL()
+    opt["comm"] = comm
+    opt["size"] = size
+    opt["rank"] = rank
+
+    opt_forward = opt.copy()
+    opt_forward["wkd"] += "_forward"
+
+    opt_backward = opt.copy()
+    opt_backward["wkd"] += "_backward"
+
     # Generate snapshot structure
     snp_forward = SnapshotsSEM3D(**opt_forward)
     snp_backward = SnapshotsSEM3D(**opt_backward)
+    
     # Parse result snapshots 
     snp_forward.parse()
     snp_backward.parse()
 
-    return (snp_forward,snp_backward)
+    return snp_forward, snp_backward
+    
 
 def main():
     """
@@ -235,35 +231,57 @@ def main():
     rank = MPI.COMM_WORLD.Get_rank()    # Get the current rank
     hostname = MPI.Get_processor_name() # Get the hostname
     
-    (snp_forward,snp_backward) = GetSnapshots(comm,size,rank)
-    
-    #Récupération des données 
-    M = snp_forward.dset['Mass']/snp_forward.dset['Dens']
-    
+    snp_forward, snp_backward = GetSnapshots(comm,size,rank)
 
-<<<<<<< HEAD
-    eps_forw_ii = np.add(np.add(snp_forward.dset['eps_dev_xx'],snp_forward['eps_dev_yy']),snp_forward['eps_dev_zz'])
-    eps_back_ii = np.add(np.add(snp_backward['eps_dev_xx'],snp_backward['eps_dev_yy']),snp_backward['eps_dev_zz'])
-    eps_forw_ij = np.add(np.add(snp_forward['eps_dev_xy'],snp_forward['eps_dev_xz']),snp_forward['eps_dev_yz'])
-    eps_back_ij = np.add(np.add(snp_backward['eps_dev_xy'],snp_backward['eps_dev_xz']),snp_backward['eps_dev_yz'])
-    #Calcul intermédiaire 
-    
-    N = snp_forward.dset
-    Le = len(N)
-    N_transpose = np.transpose(N)
-    g_mis_inter_lamb = [np.dot(np.dot(N[x],eps_forw_ii[x][0]),eps_back_ii[x][0]) for x in range (Le)]
-    g_mis_inter_mu = [np.dot(N[x],(2*np.dot(eps_forw_ii[x][0],eps_back_ii[x][0])+np.dot(eps_forw_ij[x][0],eps_back_ij[x][0]))) for x in range (Le)]
+    # Definition of variables
+    directions_aa = ["xx", "yy", "zz"]
+    directions_ab = ["xy", "xz", "yz"]
+    dset_fw = snp_forward.dset
+    dset_bw = snp_backward.dset
+    Elements = dset_fw["ElementsGlob"]
+    Nodes = dset_fw["Nodes"]
+    Jac = dset_fw["Jac"]
+    nb_snapshots = dset_fw["eps_vol"].shape[2]
+    dt = 0.5
 
-    M = np.sum(np.dot(N,N_transpose))
-    g_mis_lamb = np.sum(g_mis_inter_lamb)
-    g_mis_mu = np.sum(g_mis_inter_mu)
-    
-=======
-    M = snp.dset["Mass"]
-    Elements = snp.dset["ElementsGlob"]
-    g_reg_lam = 
+    ### Computation of problem variables 
+    M = dset_fw['Mass']/dset_fw["Dens"]
 
->>>>>>> 94403587625f70492ffbbe0cf5e3d65e38d78977
+    g_reg_lambda = M*snp_forward.dset["Lamb"]
+    g_reg_mu = M*snp_forward.dset["Mu"]
+
+    g_mis_lambda = np.zeros(Nodes.shape)
+    g_mis_mu = np.zeros(Nodes.shape)
+
+    for element_idx, element in enumerate(Elements):
+        # Compute g_mis_lambda
+        temp_fw = np.sum([dset_fw[f"eps_dev_{direction}"][element_idx][0] for direction in directions_aa], axis=0)
+        temp_bw = np.sum([dset_bw[f"eps_dev_{direction}"][element_idx][0] for direction in directions_aa], axis=0)
+
+        temp = np.dot(temp_fw * temp_bw) * dt / 8
+
+        for node_idx in element:
+            g_mis_lambda[element[node_idx]] -= temp * Jac[element[node_idx]]
+        
+        # Compute g_mis_mu
+        temp_ii = np.array([
+            np.dot(dset_fw[f"eps_dev_{direction}"][element_idx][0] * dset_bw[f"eps_dev_{direction}"][element_idx][0])
+            for direction in directions_aa
+        ])
+        temp_ij = np.array([
+            np.dot(dset_fw[f"eps_dev_{direction}"][element_idx][0], dset_bw[f"eps_dev_{direction}"][element_idx][0])
+            for direction in directions_ab
+        ])
+
+        # We multiply by 2 for the off-diagonal terms and for the diagonal terms (according to the formula)
+        temp = 2 * np.sum(temp_ii + temp_ij) * dt / 8
+
+        for node_idx in element:
+            g_mis_mu[element[node_idx]] -= temp * Jac[element[node_idx]]
+
+    ### Computation of g_lambda and g_mu
+    g_lambda = (g_reg_lambda + g_mis_lambda)/M
+    g_mu = (g_reg_mu + g_mis_mu)/M
     # unique_values,count = np.unique(snp.dset['ElementsGlob'],return_counts=True)
     # print(unique_values,count)
     MPI.Finalize()
