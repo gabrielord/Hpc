@@ -280,8 +280,8 @@ def main():
             g_mis_mu[element[node_idx]] -= temp * Jac[element[node_idx]]
 
     ### Computation of g_lambda and g_mu
-    g_lambda = (g_reg_lambda + g_mis_lambda)/M
-    g_mu = (g_reg_mu + g_mis_mu)/M
+    g_lambda = (R_lambda * g_reg_lambda + g_mis_lambda)/M
+    g_mu = (R_mu * g_reg_mu + g_mis_mu)/M
     # unique_values,count = np.unique(snp.dset['ElementsGlob'],return_counts=True)
     # print(unique_values,count)
     MPI.Finalize()

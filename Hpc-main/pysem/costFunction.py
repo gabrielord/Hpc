@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 from scipy.interpolate import interp1d
 from gradient import gradient
 
-def costFunction(mu, lamb, R_lamb, R_mu, g_reg_lamb, g_reg_mu, g_lamb_mis, g_mu_mis):
+def costFunction(mu,lamb,R_lamb,R_mu, g_reg_lamb,g_reg_mu, g_lamb_mis, g_mu_mis):
     # define options
     opt = {'syd':'traces_forward/',
            'trd':'../Uobs/',
@@ -46,15 +46,8 @@ def costFunction(mu, lamb, R_lamb, R_mu, g_reg_lamb, g_reg_mu, g_lamb_mis, g_mu_
                 misfit = np.linalg.norm((trace_synthetic.displ_values(m, direction)[::-1] - trace_truth.displ_values(m, direction)[::-1]))**2
     
     totalMisfit = sum(misfit) 
-    # grad_lamb, grad_mu = gradient(mu,lamb,R_lamb,R_mu, g_reg_lamb,g_reg_mu, g_lamb_mis, g_mu_mis)
-    grad_lamb, grad_mu = calculate_regularizer()
+    grad_lamb, grad_mu = gradient(mu,lamb,R_lamb,R_mu, g_reg_lamb,g_reg_mu, g_lamb_mis, g_mu_mis)
     costFunction = 1/2*(totalMisfit + R_lamb*np.dot(grad_lamb,grad_lamb) + R_mu*np.dot(grad_mu,grad_mu))
-    return costFunction
 
 
-def calculate_regularizer():
-    pass
 
-grad_lamb, grad_mu = calculate_regularizer()
-
-print(grad_lamb, grad_mu)
