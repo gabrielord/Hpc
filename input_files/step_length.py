@@ -8,6 +8,7 @@ import mpi4py
 mpi4py.rc.initialize = False
 mpi4py.rc.finalize = False
 from mpi4py import MPI
+from ..pysem.gradient import gradient
 
 from .parse_h5_snapshots import GetSnapshots
 
@@ -105,6 +106,8 @@ def main():
         with open('cout.txt', 'r') as file:
             J_k_1 = file.readlines()[-1].strip()
         iter +=10
+
+        
 
 if __name__=='__main__':
     main()
