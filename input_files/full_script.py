@@ -44,10 +44,22 @@ def create_useful_folders():
         os.makedirs(f"forward/{folder}", exist_ok=True)
         os.makedirs(f"backward/{folder}", exist_ok=True)
 
+def copy_material_files():
+    """
+    Copy the material files in the material folder to keep a version
+    of the initial state of the layer.
+    """
+    os.makedirs("material", exist_ok=True)
+    # On copie tous les fichiers de la forme example_*.h5 et example_*.xml
+    # au format *.h5 et *.xml dans le dossier material
+    os.system("""for file in material/initial_*; do cp "$file" "$(echo $file | sed 's/initial_//')"; done""")
+
+
 def main():
     """Main function of the script."""
     ### Initialization
     create_useful_folders()
+    copy_material_files()
 
     ### Variables
     iter = 0
@@ -61,7 +73,7 @@ def main():
             write_output(f"Current cost function value: {J}")
         
 
-        ### We solve the forward problem
+        """### We solve the forward problem
         write_output(f"\n\n1. [{get_current_time()}] Solving the forward problem...")
 
         # Launch the mesher
@@ -83,9 +95,9 @@ def main():
         subprocess.run(cmd, shell=True, stdout=f)
         f.close()
         write_output("\t- Move the output files...")
-        os.system("mv traces forward/traces")
-        os.system("mv res forward/res")
-        os.system(f"mv stat.log output_files/stat_forward_{iter}.log")
+        os.system("mv traces forward")
+        os.system("mv res forward")
+        os.system(f"mv stat.log output_files/stat_forward_{iter}.log")"""
 
 
 
@@ -122,8 +134,8 @@ def main():
         subprocess.run(cmd, shell=True, stdout=f)
         f.close()
         write_output("\t- Move the output files...")
-        os.system("mv traces backward/traces")
-        os.system("mv res backward/res")
+        os.system("mv traces backward")
+        os.system("mv res backward")
         os.system(f"mv stat.log output_files/stat_backward_{iter}.log")
 
         ### We determine the gradient
