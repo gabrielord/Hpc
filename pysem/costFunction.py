@@ -7,8 +7,8 @@ from gradient import gradient
 
 def costFunction(mu,lamb,R_lamb,R_mu, g_reg_lamb,g_reg_mu, g_lamb_mis, g_mu_mis):
     # define options
-    opt = {'syd':'./input_files/traces_forward/',
-           'trd':'./Uobs/',
+    opt = {'syd':'traces_forward/',
+           'trd':'../Uobs/',
            'fmt':'h5',
            'nam':['all'],
            'var':['Displ'],

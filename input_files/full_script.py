@@ -80,7 +80,8 @@ def main():
               f"-map-by ppr:1:core:PE=1 " + \
               f"sem3d.exe"
         f = open(f"output_files/forward_{iter}.solver", "w")
-        res = subprocess.run(cmd, shell=True, stdout=f)
+        subprocess.run(cmd, shell=True, stdout=f)
+        f.close()
         write_output("\t- Move the output files...")
         os.system("mv traces forward/traces")
         os.system("mv res forward/res")
@@ -90,23 +91,51 @@ def main():
 
         ### We determine the misfit
         write_output(f"\n\n2. [{get_current_time()}] Determining the misfit...")
-
+        # Generate the misfit files
+        write_output(f"\n==> [{get_current_time()}] Generating the misfit files...")
+        cmd = f"mpirun -np 1 " + \
+              f"-map-by ppr:1:core:PE=1 " + \
+              f"python3 ../pysem/compute_misfit.py"
+        f = open(f"output_files/misfit_{iter}.output", "w")
+        subprocess.run(cmd, shell=True, stdout=f)
+        f.close()
 
 
         ### We solve the adjoint (backward) problem
         write_output(f"\n\n3. [{get_current_time()}] Solving the adjoint problem...")
         # Launch the mesher
         write_output(f"\n==> [{get_current_time()}] Launching the mesher...")
+        write_output("\t- Update the input.spec file...")
+        os.system("cp input_backward.spec input.spec")
+        write_output("\t- Launch the mesher...")
+        os.system(f"mesher < mesh.input > output_files/backward_{iter}.mesher")
+        write_output("\t- Move the mesh files...")
+        os.system("mv mesh4spec.* ./sem/")
 
         # Launch the solver
         write_output(f"\n==> [{get_current_time()}] Launching the solver...")
-
-
+        write_output("\t- Launch the solver...")
+        cmd = f"mpirun -np 32 " + \
+                f"-map-by ppr:1:core:PE=1 " + \
+                f"sem3d.exe"
+        f = open(f"output_files/backward_{iter}.solver", "w")
+        subprocess.run(cmd, shell=True, stdout=f)
+        f.close()
+        write_output("\t- Move the output files...")
+        os.system("mv traces backward/traces")
+        os.system("mv res backward/res")
+        os.system(f"mv stat.log output_files/stat_backward_{iter}.log")
 
         ### We determine the gradient
         write_output(f"\n\n4. [{get_current_time()}] Determining the gradient...")
         # Calculate the gradient
         write_output(f"\n==> [{get_current_time()}] Calculating the gradient...")
+        cmd = f"mpirun -np 1 " + \
+              f"-map-by ppr:1:core:PE=1 " + \
+              f"python3 ../pysem/gradient.py"
+        f = open(f"output_files/gradient_{iter}.output", "w")
+        subprocess.run(cmd, shell=True, stdout=f)
+        f.close()
 
         # Calculate the search direction
         write_output(f"\n==> [{get_current_time()}] Calculating the search direction...")
