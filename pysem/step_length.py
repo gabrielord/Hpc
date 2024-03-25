@@ -9,7 +9,7 @@ mpi4py.rc.initialize = False
 mpi4py.rc.finalize = False
 from mpi4py import MPI
 
-from ..pysem.parse_h5_snapshots.py import GetSnapshots
+from .parse_h5_snapshots import GetSnapshots
 
 def write_output(txt):
     """

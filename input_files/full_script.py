@@ -71,33 +71,32 @@ def main():
                             2*f"***********************{'*'*floor(np.log10(max(1, iter)))}\n")
         if J is not None:
             write_output(f"Current cost function value: {J}")
-        
+        else:
+            ### We solve the forward problem
+            write_output(f"\n\n1. [{get_current_time()}] Solving the forward problem...")
 
-        """### We solve the forward problem
-        write_output(f"\n\n1. [{get_current_time()}] Solving the forward problem...")
+            # Launch the mesher
+            write_output(f"\n==> [{get_current_time()}] Launching the mesher...")
+            write_output("\t- Update the input.spec file...")
+            os.system("cp input_forward.spec input.spec")
+            write_output("\t- Launch the mesher...")
+            os.system(f"mesher < mesh.input > output_files/forward_{iter}.mesher")
+            write_output("\t- Move the mesh files...")
+            os.system("mv mesh4spec.* ./sem/")
 
-        # Launch the mesher
-        write_output(f"\n==> [{get_current_time()}] Launching the mesher...")
-        write_output("\t- Update the input.spec file...")
-        os.system("cp input_forward.spec input.spec")
-        write_output("\t- Launch the mesher...")
-        os.system(f"mesher < mesh.input > output_files/forward_{iter}.mesher")
-        write_output("\t- Move the mesh files...")
-        os.system("mv mesh4spec.* ./sem/")
-
-        # Launch the solver
-        write_output(f"\n==> [{get_current_time()}] Launching the solver...")
-        write_output("\t- Launch the solver...")
-        cmd = f"mpirun -np 32 " + \
-              f"-map-by ppr:1:core:PE=1 " + \
-              f"sem3d.exe"
-        f = open(f"output_files/forward_{iter}.solver", "w")
-        subprocess.run(cmd, shell=True, stdout=f)
-        f.close()
-        write_output("\t- Move the output files...")
-        os.system("mv traces forward")
-        os.system("mv res forward")
-        os.system(f"mv stat.log output_files/stat_forward_{iter}.log")"""
+            # Launch the solver
+            write_output(f"\n==> [{get_current_time()}] Launching the solver...")
+            write_output("\t- Launch the solver...")
+            cmd = f"mpirun -np 32 " + \
+                f"-map-by ppr:1:core:PE=1 " + \
+                f"sem3d.exe"
+            f = open(f"output_files/forward_{iter}.solver", "w")
+            subprocess.run(cmd, shell=True, stdout=f)
+            f.close()
+            write_output("\t- Move the output files...")
+            os.system("mv traces forward")
+            os.system("mv res forward")
+            os.system(f"mv stat.log output_files/stat_forward_{iter}.log")
 
 
 
