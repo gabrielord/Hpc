@@ -3,9 +3,9 @@ import h5py
 from parse_h5_traces import parse, components
 import matplotlib.pyplot as plt
 from scipy.interpolate import interp1d
-from gradient import gradient
 
-def costFunction(mu,lamb,R_lamb,R_mu, g_reg_lamb,g_reg_mu, g_lamb_mis, g_mu_mis):
+
+def costFunction(mu,lamb,R_lamb,R_mu):
     # define options
     opt = {'syd':'traces_forward/',
            'trd':'../Uobs/',
@@ -46,8 +46,15 @@ def costFunction(mu,lamb,R_lamb,R_mu, g_reg_lamb,g_reg_mu, g_lamb_mis, g_mu_mis)
                 misfit = np.linalg.norm((trace_synthetic.displ_values(m, direction)[::-1] - trace_truth.displ_values(m, direction)[::-1]))**2
     
     totalMisfit = sum(misfit) 
-    grad_lamb, grad_mu = gradient(mu,lamb,R_lamb,R_mu, g_reg_lamb,g_reg_mu, g_lamb_mis, g_mu_mis)
-    costFunction = 1/2*(totalMisfit + R_lamb*np.dot(grad_lamb,grad_lamb) + R_mu*np.dot(grad_mu,grad_mu))
+    grad_lamb = np.gradient(lamb)
+    rad_lamb = np.array(grad_lamb)
+    dot_p_lamb = grad_lamb[0] * grad_lamb[1]
+    res_grad_lamb  = sum(dot_p_lamb.flatten())
+    grad_mu = np.gradient(mu)
+    grad_mu = np.array(grad_mu)
+    dot_p_mu = grad_mu[0] * grad_mu[1]
+    res_grad_mu  = sum(dot_p_mu.flatten())
+    cost = 1/2*(totalMisfit + R_lamb*res_grad_lamb + R_mu*res_grad_mu)
 
-
-
+    return cost
+    
