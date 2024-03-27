@@ -4,7 +4,7 @@ material 0 {
     domain    =         solid;
     deftype   =     Lambda_Mu;
     spacedef  =          file;
-    filename0 = "example_la.h5"; 
-    filename1 = "example_mu.h5";
-    filename2 = "example_ds.h5";
+    filename0 = "material/la.h5"; 
+    filename1 = "material/mu.h5";
+    filename2 = "material/ds.h5";
 };
