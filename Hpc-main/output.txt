@@ -1,8 +1,0 @@
-Hello World!
-This is the main script to determine the Lamé parameters of the geological layer.
-The script is under construction...
-Good luck!
-Hello World (bis)!
-This is the main script to determine the Lamé parameters of the geological layer.
-The script is under construction...
-Good luck!
