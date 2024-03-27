@@ -13,6 +13,7 @@ Script to create h5 material files for SEM3D
 import argparse
 import h5py
 import numpy as np
+import json
 from scipy.interpolate import RegularGridInterpolator
 
 # General informations
@@ -40,7 +41,7 @@ def heterogeneous_mat(la, mu, nodes):
     z_min, z_max = -300, 0
     nx, ny, nz = (x_max - x_min)//step+1, (y_max - y_min)//step+1, (z_max - z_min)//step+1
     lims = {'xmin':x_min, 'xmax':x_max, 'ymin':y_min, 'ymax':y_max, 'zmin':z_min, 'zmax':z_max, 'nx':nx, 'ny':ny, 'nz':nz}
-    pfx = 'example'
+    pfx = ''
     prop = ['la','mu']
 
 
@@ -183,45 +184,11 @@ if __name__=='__main__':
     z_min, z_max = -300, 0
     
     parser = argparse.ArgumentParser(prefix_chars='@')
-    parser.add_argument('@@prop',type=str,nargs='+',default= ['la','mu','ds','vp','vs'],help="list of properties to be generated")
-    parser.add_argument('@@tag',type=str,default="linear_gradient",help="tag for material model")
-    parser.add_argument('@@dir',type=str,default="z",help="Main gradient direction [x|y|z]")
-    parser.add_argument('@@xlim',type=float,nargs='*',default=[x_min, x_max],help="Limits of the box [xmin xmax]")
-    parser.add_argument('@@ylim',type=float,nargs='*',default=[y_min, y_max],help="Limits of the box [ymin ymax]")
-    parser.add_argument('@@zlim',type=float,nargs='*',default=[z_min, z_max],help="Limits of the box [zmin zmax]")
-    parser.add_argument('@@step',type=float,nargs='*',default=[(x_max - x_min)//step+1, (y_max - y_min)//step+1, (z_max - z_min)//step+1],help="Numbers of points per direction [nx ny nz]")
-    parser.add_argument('@@pfx',type=str,default="linear_gradient",help="File prefix")
-    parser.add_argument('@@nu',type=float,default=0.3,help="Poisson's ratio")
+    parser.add_argument('@@prop',type=str,nargs='+',default= ['la','mu'],help="list of properties to be generated")
+    parser.add_argument('@@iter',type=int,help="iteration number")
     opt = parser.parse_args().__dict__
-    
-    assert len(opt['xlim'])==2
-    assert len(opt['ylim'])==2
-    assert len(opt['zlim'])==2
-    
-    opt['xlim'].sort() 
-    opt['ylim'].sort()
-    opt['zlim'].sort()
-    opt['step'] = [int(x) for x in opt['step']] 
 
-    # mechanical properties to be generated
-    model = (opt['tag'],opt['dir'])
-    print("Model tag: {0} - Model grad: {1}".format(*model))
+    with open(f"output_files/gradient_values_{iter}.txt", "r") as f:
+        data = json.loads(f.readline().strip())
     
-    # define grid limits (larger than SEM3D domain)
-    lims = (('xmin',opt['xlim'][0]),('xmax',opt['xlim'][1]),
-            ('ymin',opt['ylim'][0]),('ymax',opt['ylim'][1]),
-            ('zmin',opt['zlim'][0]),('zmax',opt['zlim'][1]),
-            ('nx',opt['step'][0]),('ny',opt['step'][1]),('nz',opt['step'][2]))
-    lims = dict(lims)
-    print(f'Domain limits/discretization : \n X: {lims["xmin"]} m : {lims["xmax"]} m; nx={lims["nx"]} \n Y: {lims["ymin"]} m : {lims["ymax"]} m; ny={lims["ny"]} \n Z: {lims["zmin"]} m : {lims["zmax"]} m; nz={lims["nz"]}')
-    
-    # generate grid points
-    grd = grid(lims)
-    
-    # generate model
-    mat = gen_mat(*model,opt['prop'],grd,opt['nu'])
-    
-    # write hdf5 file
-    write_h5(opt['pfx'],opt['prop'],mat,lims)
-    write_xdmf(opt['pfx'],opt['prop'],mat,lims)
-    print("Material files generated successfully!")
+    heterogeneous_mat(data["lambda"],data["mu"],data["Nodes"])

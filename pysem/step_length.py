@@ -1,5 +1,4 @@
 import os
-import sys
 import numpy as np
 import subprocess
 from math import floor
@@ -9,27 +8,16 @@ mpi4py.rc.initialize = False
 mpi4py.rc.finalize = False
 from mpi4py import MPI
 
-from .parse_h5_snapshots import GetSnapshots
-
-def write_output(txt):
-    """
-    Function to write in the output file.
-    """
-    with open("output.txt", "a") as output_file:
-        output_file.write(txt+"\n")
-
 def main():
 #Init varibale
     N_iter = 5
     alpha_lamb = 1
     alpha_mu = 1
-    c1= 10**(-4)
+    c1= 1e-4
     xi = 0.5
-
 
     with open('cout.txt', 'r') as file:
         J_k_1 = file.readlines()[-1].strip()
-
 
     iter = 0 
     #On initialise J_k à None, pour, à la fin de la permière boucle, avoir J_k à la valeur calculé, et J_k_1 à la nouvelle valeur

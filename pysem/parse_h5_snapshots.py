@@ -12,16 +12,17 @@ Script to compute PML properties for SEM3D
         python3 compute_pml_length.py @@Ax 10.
 """
 # Required modules
-import mpi4py
+"""import mpi4py
 mpi4py.rc.initialize = False
 mpi4py.rc.finalize = False
-from mpi4py import MPI
+from mpi4py import MPI"""
 import glob
 import argparse
 from os.path import join as osj
 import numpy as np
 import h5py as hf
 import hashlib
+import json
 
 # General informations
 __author__ = "Filippo Gatti"
@@ -32,6 +33,8 @@ __version__ = "1.0.1"
 __maintainer__ = "Filippo Gatti"
 __email__ = "filippo.gatti@centralesupelec.fr"
 __status__ = "Beta"
+
+print("Début du fichier")
 
 typ = {'Mass':'static','Dens':'static','Dom':'static','Elements':'static','ElementsGlob':'static',
        'Jac':'static','Kappa':'static','Lamb':'static','Mass':'static','Material':'static',
@@ -76,6 +79,9 @@ class SnapshotsSEM3D(object):
             self.snapfile['np'] = [self.rank*(qc+1)+q for q in range(qc+1)]
         else:
             self.snapfile['np'] = [rc*(qc+1)+(self.rank-rc)*qc+q for q in range(qc)]
+        
+        print(f"np {self.snapfile['np']}")
+        print(f"nt {self.snapfile['nt']}")
 
         print("Rank {:d} - file range {}".format(self.rank,self.snapfile['np']))
 
@@ -114,14 +120,14 @@ class SnapshotsSEM3D(object):
 
         lhashn = np.unique(lhashn,axis=0)
         # global node hash
-        self.ghashn = self.comm.allgather(lhashn)
+        self.ghashn = lhashn#self.comm.allgather(lhashn)
         # global node hash
-        self.ghashn = np.unique(np.concatenate(self.ghashn),axis=0)
+        #self.ghashn = np.unique(np.concatenate(self.ghashn),axis=0)
         # globale number of nodes
         self.gnnodes = self.ghashn.size
         # global elements
         # self.lelems = np.empty((lnelems,8),dtype=np.int64)
-        self.gnelems = self.comm.allreduce(lnelems,op=MPI.SUM)
+        self.gnelems = lnelems # self.comm.allreduce(lnelems,op=MPI.SUM)
 
         # Assemble global connectivity and unique nodal coordinates
         for g in self.snapfile['np']:
@@ -172,6 +178,8 @@ class SnapshotsSEM3D(object):
                 for t in range(2,self.snapfile['nt']+1):
                     self.dtmp = np.array([])
                     for g in self.snapfile['np']:
+                        print(self.wkd)
+                        print('Rsem{:>04d}/sem_field.{:>04d}.h5'.format(t,g))
                         with hf.File(osj(self.wkd,'Rsem{:>04d}/sem_field.{:>04d}.h5'.format(t,g)),'r') as h5f:
                             if self.dtmp.size == 0:
                                 self.dtmp=h5f[v][...]
@@ -184,7 +192,7 @@ def ParseCL():
         Parse command line flags
     """
     parser = argparse.ArgumentParser(prefix_chars='@')
-    parser.add_argument('@@wkd',type=str,default='./input_files/res',help="Path to res directory")
+    parser.add_argument('@@wkd',type=str,default='./',help="Path to res directory")
     parser.add_argument('@@var',type=str,nargs='+',default=['Mass', 'Dens','Nodes','Jac','Mu','Lamb',
                                                             'ElementsGlob','displ',
                                                             'eps_vol','eps_dev_xx',
@@ -197,7 +205,6 @@ def ParseCL():
     return opt
 
 def GetSnapshots(comm,size,rank):
-
     # Parse Command Line
     opt = ParseCL()
     opt["comm"] = comm
@@ -205,14 +212,14 @@ def GetSnapshots(comm,size,rank):
     opt["rank"] = rank
 
     opt_forward = opt.copy()
-    opt_forward["wkd"] += "_forward"
+    opt_forward["wkd"] += "forward/res"
 
     opt_backward = opt.copy()
-    opt_backward["wkd"] += "_backward"
-
+    opt_backward["wkd"] += "backward/res"
+    
     # Generate snapshot structure
     snp_forward = SnapshotsSEM3D(**opt_forward)
-    snp_backward = SnapshotsSEM3D(**opt_backward)
+    snp_backward = SnapshotsSEM3D(**opt_forward)
     
     # Parse result snapshots 
     snp_forward.parse()
@@ -225,15 +232,17 @@ def main():
     """
     Start parallel process
     """
-    MPI.Init()
-    comm = MPI.COMM_WORLD               # Get communicator
-    size = MPI.COMM_WORLD.Get_size()    # Get size of communicator
-    rank = MPI.COMM_WORLD.Get_rank()    # Get the current rank
-    hostname = MPI.Get_processor_name() # Get the hostname
+    # MPI.Init()
+    comm = None#MPI.COMM_WORLD               # Get communicator
+    size = 1#comm.Get_size()    # Get size of communicator
+    rank = 0#comm.Get_rank()    # Get the current rank
     
+    print("Récupération des snapshots forward et backward")
     snp_forward, snp_backward = GetSnapshots(comm,size,rank)
+    print("Récupération terminée !")
 
     # Definition of variables
+    print("Récupération des variables d'intérêt")
     directions_aa = ["xx", "yy", "zz"]
     directions_ab = ["xy", "xz", "yz"]
     dset_fw = snp_forward.dset
@@ -245,6 +254,7 @@ def main():
     dt = 0.5
 
     ### Computation of problem variables 
+    print("Calcul des variables d'intérêt")
     M = dset_fw['Mass']/dset_fw["Dens"]
 
     g_reg_lambda = M*snp_forward.dset["Lamb"]
@@ -280,14 +290,26 @@ def main():
             g_mis_mu[element[node_idx]] -= temp * Jac[element[node_idx]]
 
     ### Computation of g_lambda and g_mu
+    print("Calcul des gradients de lambda et mu en fonction de la fonction de coût")
     g_lambda = (g_reg_lambda + g_mis_lambda)/M
     g_mu = (g_reg_mu + g_mis_mu)/M
+
     # unique_values,count = np.unique(snp.dset['ElementsGlob'],return_counts=True)
     # print(unique_values,count)
-    MPI.Finalize()
+    #MPI.Finalize()
+
+    return {"g_lambda":list(g_lambda), "g_mu":list(g_mu), "M":list(M),
+            "nodes":list(Nodes), "lambda":snp_forward.dset["Lamb"], "mu":snp_forward.dset["Mu"]}
 
 if __name__=="__main__":
-    main()
+    print("Lancement du script pour le calcul du gradient")
+    res = main()
+
+    print("Ecriture des résultats dans le fichier de sortie.")
+    with open(f"output_files/gradient_values{iter}.txt", "w") as f:
+        f.write(json.dumps(res))
+
+    print("Calcul du gradient terminé !")
     
 #     eps_xx = snp.dset['eps_dev_xx']+snp.dset['eps_vol']/3.
 #     eps_yy = snp.dset['eps_dev_yy']+snp.dset['eps_vol']/3.

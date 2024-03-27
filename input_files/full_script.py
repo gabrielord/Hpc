@@ -7,6 +7,7 @@ import numpy as np
 import subprocess
 from math import floor
 from datetime import datetime
+import json
 
 ### Constants
 N_iter = 10
@@ -16,6 +17,8 @@ c1 = 1e-4
 xi = 0.5
 tol = 1e-4
 
+
+
 def write_output(txt):
     """
     Function to write in the output file.
@@ -23,12 +26,17 @@ def write_output(txt):
     with open("output.txt", "a") as output_file:
         output_file.write(txt+"\n")
 
+
+
+
 def get_current_time():
     """
     Return the current date with format DD/MM/YYYY à HHhMMminSS
     """
     current_datetime = datetime.now()
     return current_datetime.strftime("%d/%m/%Y à %Hh%Mmin%S")
+
+
 
 
 def create_useful_folders():
@@ -44,6 +52,9 @@ def create_useful_folders():
         os.makedirs(f"forward/{folder}", exist_ok=True)
         os.makedirs(f"backward/{folder}", exist_ok=True)
 
+
+
+
 def copy_material_files():
     """
     Copy the material files in the material folder to keep a version
@@ -53,6 +64,19 @@ def copy_material_files():
     # On copie tous les fichiers de la forme example_*.h5 et example_*.xml
     # au format *.h5 et *.xml dans le dossier material
     os.system("""for file in material/initial_*; do cp "$file" "$(echo $file | sed 's/initial_//')"; done""")
+
+
+
+
+def get_output(file_path):
+    """
+    Get the output of a function stored in a file with json dumps.
+    """
+    with open(file_path, "r") as f:
+        ligne = f.readline().strip()
+        return json.loads(ligne)
+
+
 
 
 def main():
@@ -94,6 +118,7 @@ def main():
             subprocess.run(cmd, shell=True, stdout=f)
             f.close()
             write_output("\t- Move the output files...")
+            os.system("rm -r forward/*")
             os.system("mv traces forward")
             os.system("mv res forward")
             os.system(f"mv stat.log output_files/stat_forward_{iter}.log")
@@ -107,9 +132,8 @@ def main():
         cmd = f"mpirun -np 1 " + \
               f"-map-by ppr:1:core:PE=1 " + \
               f"python3 ../pysem/compute_misfit.py"
-        f = open(f"output_files/misfit_{iter}.output", "w")
-        subprocess.run(cmd, shell=True, stdout=f)
-        f.close()
+        with open(f"output_files/misfit_{iter}.output", "w") as f:
+            subprocess.run(cmd, shell=True, stdout=f)
 
 
         ### We solve the adjoint (backward) problem
@@ -129,10 +153,11 @@ def main():
         cmd = f"mpirun -np 32 " + \
                 f"-map-by ppr:1:core:PE=1 " + \
                 f"sem3d.exe"
-        f = open(f"output_files/backward_{iter}.solver", "w")
-        subprocess.run(cmd, shell=True, stdout=f)
-        f.close()
+        with open(f"output_files/backward_{iter}.solver", "w") as f:
+            subprocess.run(cmd, shell=True, stdout=f)
+            
         write_output("\t- Move the output files...")
+        os.system("rm -r backward/*")
         os.system("mv traces backward")
         os.system("mv res backward")
         os.system(f"mv stat.log output_files/stat_backward_{iter}.log")
@@ -142,35 +167,98 @@ def main():
         # Calculate the gradient
         write_output(f"\n==> [{get_current_time()}] Calculating the gradient...")
         cmd = f"mpirun -np 1 " + \
-        f"-map-by ppr:1:core:PE=1 " + \
-        f"python3 ../pysem/gradient.py " + \
-        f"{mu.tolist()} {lamb.tolist()} {R_lamb.tolist()} {R_mu.tolist()} {g_reg_lamb.tolist()} {g_reg_mu.tolist()} {g_lamb_mis.tolist()} {g_mu_mis.tolist()}"
+                f"python3 ../pysem/parse_h5_snapshots.py @@iter {iter}"
+        with open(f"output_files/snapshot_processing_{iter}.output", "w") as f:
+            subprocess.run(cmd, shell=True, stdout=f)
+        
+        # Get the output values
+        write_output(f"\n==> [{get_current_time()}] Getting the resulting output values...")
+        data = get_output(f"output_files/gradient_values_{iter}.txt")
+        Lambda = data["lambda"]
+        Mu = data["mu"]
+        g_lambda = data["g_lambda"]
+        g_mu = data["g_mu"]
+        M = data["M"]
+        Nodes = data["nodes"]
 
-        subprocess.run(cmd, shell=True)
+        if J is None:
+            # Compute the cost function
+            write_output(f"\n==> [{get_current_time()}] Computing the cost function...")
+            cmd = f"mpirun -np 1 " + \
+                    f"python3 ../pysem/cost_function.py @@iter {iter}"
+            with open(f"output_files/cost_computation_{iter}.output", "w") as f:
+                subprocess.run(cmd, shell=True, stdout=f)
+            J = get_output(f"output_files/cost_{iter}.txt")["cost"]
 
-        grads = []
-        with open("output.txt", "r") as f:
-            for line in f:
-                grads.append(np.array(line.strip().split(), dtype=float))
 
-        grad_mu = grads[1]
-    
-        grad_lamb = grads[0]
         # Calculate the search direction
         write_output(f"\n==> [{get_current_time()}] Calculating the search direction...")
 
         # Calculate the step lengths
         write_output(f"\n==> [{get_current_time()}] Calculating the step lengths...")
+        # Calculate the search direction
+        write_output(f"\n==> [{get_current_time()}] Calculating the search direction...")
 
+        # Calculate the step lengths
+        write_output(f"\n==> [{get_current_time()}] Calculating the step lengths...")
+        newJ = None
+        alpha_lamb, alpha_mu = 1, 1
+        while newJ is None or newJ >= J + c1*(alpha_lamb*np.dot(s_lambda, g_lambda) + alpha_mu*np.dot(s_mu, g_mu)):
+            if newJ is not None:
+                alpha_lamb /= xi
+                alpha_mu /= xi
 
+            ### We update the material parameters
+            Lambda -= alpha_lamb * s_lambda
+            Mu -= alpha_mu * s_mu
+            write_output(f"\n\t--> [{get_current_time()}] Updating the material parameters...")
+            cmd = f"mpirun -np 1 " + \
+                  f"python3 ../pysem/generate_h5_materials.py @@iter {iter}"
+            with open(f"output_files/materials_{iter}.output", "w") as f:
+                subprocess.run(cmd, shell=True, stdout=f)
+            
+            ## We solve the forward problem
+            write_output(f"\n\n1. [{get_current_time()}] Solving the forward problem...")
+            # Launch the mesher
+            write_output(f"\n==> [{get_current_time()}] Launching the mesher...")
+            write_output("\t- Update the input.spec file...")
+            os.system("cp input_forward.spec input.spec")
+            write_output("\t- Launch the mesher...")
+            os.system(f"mesher < mesh.input > output_files/forward_{iter+1}.mesher")
+            write_output("\t- Move the mesh files...")
+            os.system("mv mesh4spec.* ./sem/")
+            
+            # Launch the solver
+            write_output(f"\n==> [{get_current_time()}] Launching the solver...")
+            write_output("\t- Launch the solver...")
+            cmd = f"mpirun -np 32 " + \
+                f"-map-by ppr:1:core:PE=1 " + \
+                f"sem3d.exe"
+            with open(f"output_files/forward_{iter}.solver", "w") as f:
+                subprocess.run(cmd, shell=True, stdout=f)
+            write_output("\t- Move the output files...")
+            os.system("rm -r forward/*")
+            os.system("mv traces forward/traces")
+            os.system("mv res forward/res")
+            os.system(f"mv stat.log output_files/stat_forward_{iter+1}.log")
 
-        ### We update the material parameters
-        write_output(f"\n\n5. [{get_current_time()}] Updating the material parameters...")
+            ## We determine the cost_function
+            write_output(f"\n\n2. [{get_current_time()}] Determining the cost...")
+            # Compute the cost function
+            write_output(f"\n==> [{get_current_time()}] Computing the cost function...")
+            cmd = f"mpirun -np 1 " + \
+                  f"python3 ../pysem/cost_function.py @@iter {iter+1}"
+            # We get the output values
+            write_output(f"\n==> [{get_current_time()}] Getting the resulting output values...")
+            newJ = get_output(f"output_files/cost_{iter+1}.txt")
 
 
 
         ### We increment the iteration counter
         iter += 10
+        J = newJ
+
+
 
 
 if __name__ == "__main__":
