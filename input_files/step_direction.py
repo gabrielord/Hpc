@@ -20,8 +20,9 @@ mpi4py.rc.initialize = False
 mpi4py.rc.finalize = False
 from mpi4py import MPI
 from ..pysem.gradient import gradient_mu, gradient_lamb
+from full_script import get_current_time
 
-from .parse_h5_snapshots import GetSnapshots
+from ..pysem.parse_h5_snapshots import GetSnapshots
 
 def write_output(txt):
     """
@@ -30,7 +31,7 @@ def write_output(txt):
     with open("output.txt", "a") as output_file:
         output_file.write(txt+"\n")
 
-def step_length(s_lamb, g_lamb, s_mu, g_mu):
+def step_length(s_lamb, g_lamb, s_mu, g_mu, comm, rank, size):
     #Init varibale
     N_iter = 5
     alpha_lamb = 1
@@ -41,7 +42,6 @@ def step_length(s_lamb, g_lamb, s_mu, g_mu):
 
     with open('cout.txt', 'r') as file:
         J_k_1 = file.readlines()[-1].strip()
-
 
     iter = 0 
     #On initialise J_k à None, pour, à la fin de la permière boucle, avoir J_k à la valeur calculé, et J_k_1 à la nouvelle valeur
@@ -56,13 +56,6 @@ def step_length(s_lamb, g_lamb, s_mu, g_mu):
             write_output(f"Current cost function value, J_k_1 and J_k: {(J_k_1,J_k)}")
         alpha_lamb *= xi
         alpha_mu *= xi
-        
-        #Update les nodes pour changer le matériaux
-        MPI.Init()
-        comm = MPI.COMM_WORLD               # Get communicator
-        size = MPI.COMM_WORLD.Get_size()    # Get size of communicator
-        rank = MPI.COMM_WORLD.Get_rank()    # Get the current rank
-        hostname = MPI.Get_processor_name() # Get the hostname
     
         snp_forward, snp_backward = GetSnapshots(comm,size,rank)
         nodes = snp_forward.dset['Nodes']
@@ -134,39 +127,39 @@ def recursion_two_loop(gradient_vec, s_stored, y_stored, m):
         r = r + (a[i] - beta) * s_stored[i]
     return r
 
-def L_bfgs(mu, lamb, max_it, m, s_lamb, g_lamb, s_mu, g_mu, g_reg_lamb, g_reg_mu, g_lamb_mis, g_mu_mis):    
+### calculate an initial nabla_mu and nabla_lamb
+
+def L_bfgs(mu, lamb, y_mu_stored, y_lamb_stored, s_mu_stored, s_lamb_stored, nabla_mu, nabla_lamb, m, g_lamb, g_mu, g_reg_lamb, g_reg_mu, g_lamb_mis, g_mu_mis, comm, rank, size):    
     '''
     Store the {y_i, s_i}
     '''
-    y_mu_stored = []
-    y_lamb_stored = []
-    s_mu_stored = []
-    s_lamb_stored = []
-
-    nabla_mu = gradient_mu(mu,lamb, g_reg_lamb, g_reg_mu, g_lamb_mis, g_mu_mis) # initial gradient 
-    nabla_lamb = gradient_lamb(mu,lamb, g_reg_lamb, g_reg_mu, g_lamb_mis, g_mu_mis)
-
-    alpha_lamb, alpha_mu = step_length(s_lamb, g_lamb, s_mu, g_mu)
-
-    # p = - nabla
-    s_mu_stored.append(- alpha_mu * nabla_mu)
-    s_lamb_stored.append(- alpha_lamb * nabla_lamb)
-
+    
     grad_mu_old = nabla_mu[:]
     grad_lamb_old = nabla_lamb[:]
+
+    s_mu = - recursion_two_loop(nabla_mu, np.array(s_mu_stored), np.array(y_mu_stored), m)
+    s_lamb = - recursion_two_loop(nabla_lamb, np.array(s_lamb_stored), np.array(y_lamb_stored), m)
+
+    alpha_lamb, alpha_mu = step_length(s_lamb, g_lamb, s_mu, g_mu, comm, rank, size)
+
+    # p = - nabla
+    step_mu = - alpha_mu * nabla_mu
+    step_lamb = - alpha_lamb * nabla_lamb
+
+    s_mu_stored.append(step_mu)
+    s_lamb_stored.append(step_lamb)
     
-    mu = mu - alpha_mu * nabla_mu
-    lamb = lamb - alpha_mu * nabla_mu
-    
-    nabla_mu = gradient_mu(mu,lamb, g_reg_lamb, g_reg_mu, g_lamb_mis, g_mu_mis) # initial gradient 
-    nabla_lamb = gradient_lamb(mu,lamb, g_reg_lamb, g_reg_mu, g_lamb_mis, g_mu_mis)
-    
+    mu = mu + step_mu
+    lamb = lamb + step_lamb
+
+    nabla_mu = gradient_mu(mu, lamb, g_reg_lamb, g_reg_mu, g_lamb_mis, g_mu_mis) # initial gradient 
+    nabla_lamb = gradient_lamb(mu, lamb, g_reg_lamb, g_reg_mu, g_lamb_mis, g_mu_mis)
+
     y_mu_stored.append(nabla_mu - grad_mu_old)
     y_lamb_stored.append(nabla_lamb - grad_lamb_old)
-    
-    m_ = 1
-    it = 1
 
+    return mu, lamb, y_mu_stored, y_lamb_stored, s_mu_stored, s_lamb_stored, nabla_mu, nabla_lamb
+'''
     while np.linalg.norm(nabla_mu) > 1e-5 and np.linalg.norm(nabla_lamb) > 1e-5: # while gradient is positive
         if it > max_it: 
             print('Maximum iterations reached!')
@@ -176,8 +169,6 @@ def L_bfgs(mu, lamb, max_it, m, s_lamb, g_lamb, s_mu, g_mu, g_reg_lamb, g_reg_mu
             p_mu = - recursion_two_loop(nabla_mu, np.array(s_mu_stored), np.array(y_mu_stored), m_)
             p_lamb = - recursion_two_loop(nabla_mu, np.array(s_lamb_stored), np.array(y_lamb_stored), m_)
             
-            alpha_lamb, alpha_mu = step_length(s_lamb, g_lamb, s_mu, g_mu)
-
             s_mu_stored.append(alpha_mu * p_mu)
             s_lamb_stored.append(alpha_lamb * p_lamb)
             
@@ -200,7 +191,7 @@ def L_bfgs(mu, lamb, max_it, m, s_lamb, g_lamb, s_mu, g_mu, g_reg_lamb, g_reg_mu
             p_mu = - recursion_two_loop(nabla_mu, np.array(s_mu_stored), np.array(y_mu_stored), m)
             p_lamb = - recursion_two_loop(nabla_mu, np.array(s_lamb_stored), np.array(y_lamb_stored), m)
             
-            alpha_lamb, alpha_mu = step_length(s_lamb, g_lamb, s_mu, g_mu)
+            # alpha_lamb, alpha_mu = step_length(s_lamb, g_lamb, s_mu, g_mu, comm, rank, size)
 
             #append the s_k+1 
             s_mu_stored.append(alpha_mu * p_mu)
@@ -228,13 +219,27 @@ def L_bfgs(mu, lamb, max_it, m, s_lamb, g_lamb, s_mu, g_mu, g_reg_lamb, g_reg_mu
             y_lamb_stored.pop(0)
             
             it = it + 1
+'''    
     
-    return mu,lamb
 
-def main(mu, lamb, max_it, m, s_lamb, g_lamb, s_mu, g_mu, g_reg_lamb, g_reg_mu, g_lamb_mis, g_mu_mis):
-    mu, lamb = L_bfgs(mu, lamb, max_it, m, s_lamb, g_lamb, s_mu, g_mu, g_reg_lamb, g_reg_mu, g_lamb_mis, g_mu_mis)
-    
+def main(mu, lamb, m, g_lamb, g_mu, g_reg_lamb, g_reg_mu, g_lamb_mis, g_mu_mis, comm, rank, size):
+    # Update les nodes pour changer le matériaux
+    MPI.Init()
+    comm = MPI.COMM_WORLD               # Get communicator
+    size = MPI.COMM_WORLD.Get_size()    # Get size of communicator
+    rank = MPI.COMM_WORLD.Get_rank()    # Get the current rank
+    hostname = MPI.Get_processor_name() # Get the hostname
+
+    y_mu_stored = []
+    y_lamb_stored = []
+    s_mu_stored = []
+    s_lamb_stored = []
+
+    nabla_mu_initial = gradient_mu(mu, lamb, g_reg_lamb, g_reg_mu, g_lamb_mis, g_mu_mis) # initial gradient 
+    nabla_lamb_initial = gradient_lamb(mu, lamb, g_reg_lamb, g_reg_mu, g_lamb_mis, g_mu_mis)
+
+    mu, lamb = L_bfgs(mu, lamb, y_mu_stored, y_lamb_stored, s_mu_stored, s_lamb_stored, nabla_mu_initial, nabla_lamb_initial, m, g_lamb, g_mu, g_reg_lamb, g_reg_mu, g_lamb_mis, g_mu_mis, comm, rank, size)
+
 
 if __name__=='__main__':
     main()
-

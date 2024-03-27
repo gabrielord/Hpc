@@ -37,7 +37,7 @@ def main():
     J_k = None
 
     #Backtracking
-    while iter < N_iter and (J_k is None or J_k_1 > J_k + c1*(alpha_lamb*np.dot(s_lamb,g_lamb)+ alpha_mu*np.dot(s_mu,g_mu)) ):
+    while iter < N_iter and (J_k is None or J_k_1 > J_k + c1*(alpha_lamb*np.dot(s_lamb, g_lamb)+ alpha_mu*np.dot(s_mu, g_mu)) ):
         write_output("\n" + 2*f"***********************{'*'*floor(np.log10(max(1, iter)))}\n"+ \
                               f"***** ITERATION {iter} *****\n" + \
                             2*f"***********************{'*'*floor(np.log10(max(1, iter)))}\n")
@@ -89,8 +89,6 @@ def main():
         os.system("mv res forward/res")
         os.system(f"mv stat.log output_files/stat_forward_{iter}.log")
 
-
-
         ### We determine the cost_function
         write_output(f"\n\n2. [{get_current_time()}] Determining the cost...")
         # Generate the misfit files
@@ -106,8 +104,6 @@ def main():
         with open('cout.txt', 'r') as file:
             J_k_1 = file.readlines()[-1].strip()
         iter +=10
-
-        
 
 if __name__=='__main__':
     main()
