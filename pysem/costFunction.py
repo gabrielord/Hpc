@@ -3,7 +3,7 @@ import h5py
 from parse_h5_traces import parse, components
 import matplotlib.pyplot as plt
 from scipy.interpolate import interp1d
-
+import json
 
 def costFunction(mu,lamb,R_lamb,R_mu):
     # define options
@@ -55,6 +55,7 @@ def costFunction(mu,lamb,R_lamb,R_mu):
     dot_p_mu = grad_mu[0] * grad_mu[1]
     res_grad_mu  = sum(dot_p_mu.flatten())
     cost = 1/2*(totalMisfit + R_lamb*res_grad_lamb + R_mu*res_grad_mu)
-
+    with open('cout.json') as json_file:
+        json.dump(cost, json_file)
     return cost
-    
+
