@@ -9,8 +9,9 @@ from math import floor
 from datetime import datetime
 from ..pysem.parse_h5_snapshots import GetSnapshots
 from mpi4py import MPI
-from step_direction import L_bfgs
+from step_direction import L_bfgs, step_length, recursion_two_loop
 from ..pysem.gradient import gradient_mu, gradient_lamb
+import json
 
 ### Constants
 N_iter = 10
@@ -244,10 +245,43 @@ def main():
             s_lamb_stored = []
             nabla_mu = gradient_mu(mu, lamb, g_reg_lamb, g_reg_mu, g_lamb_mis, g_mu_mis) # initial gradient 
             nabla_lamb = gradient_lamb(mu, lamb, g_reg_lamb, g_reg_mu, g_lamb_mis, g_mu_mis)
+        
+        grad_mu_old = nabla_mu[:]
+        grad_lamb_old = nabla_lamb[:]
 
-        mu, lamb = L_bfgs(mu, lamb, y_mu_stored, y_lamb_stored, s_mu_stored, s_lamb_stored, nabla_mu, nabla_lamb, m, g_lamb, g_mu, g_reg_lamb, g_reg_mu, g_lamb_mis, g_mu_mis, comm, rank, size)
+        s_mu = - recursion_two_loop(nabla_mu, np.array(s_mu_stored), np.array(y_mu_stored), m)
+        s_lamb = - recursion_two_loop(nabla_lamb, np.array(s_lamb_stored), np.array(y_lamb_stored), m)
+
+        s_mu_dict = {"s_mu": list(s_mu)}
+        s_lamb_dict = {"s_lamb": list(s_lamb)}
+
+        with open("s_mu_dict.json") as json_file:
+            json.dump(s_mu_dict, json_file)
+
+        with open("s_lamb_dict.json") as json_file:
+            json.dump(s_lamb_dict, json_file)
+
+        # Calculate the step length
+        write_output(f"\n==> [{get_current_time()}] Calculating the step length...")
+
+        alpha_lamb, alpha_mu = step_length(s_lamb, g_lamb, s_mu, g_mu, comm, rank, size)
 
         ### We update the material parameters
+        step_mu = - alpha_mu * nabla_mu
+        step_lamb = - alpha_lamb * nabla_lamb
+
+        s_mu_stored.append(step_mu)
+        s_lamb_stored.append(step_lamb)
+        
+        mu = mu + step_mu
+        lamb = lamb + step_lamb
+
+        nabla_mu = gradient_mu(mu, lamb, g_reg_lamb, g_reg_mu, g_lamb_mis, g_mu_mis) # initial gradient 
+        nabla_lamb = gradient_lamb(mu, lamb, g_reg_lamb, g_reg_mu, g_lamb_mis, g_mu_mis)
+
+        y_mu_stored.append(nabla_mu - grad_mu_old)
+        y_lamb_stored.append(nabla_lamb - grad_lamb_old)
+
         write_output(f"\n\n5. [{get_current_time()}] Updating the material parameters...")
         cmd = f"mpirun -np 1 " + \
               f"-map-by ppr:1:core:PE=1 " + \
@@ -256,7 +290,6 @@ def main():
         
         subprocess.run(cmd, shell=True, stdout=f)
         f.close()
-        
 
         ### We increment the iteration counter
         iter += 10
