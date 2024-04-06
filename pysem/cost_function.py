@@ -23,7 +23,7 @@ def integrate_on_volume(var, x_values, y_values, z_values):
 
 def costFunction(iter, mu, lamb, R_lamb, R_mu, x_values, y_values, z_values):
     # define options
-    opt = {'syd':'traces_forward/',
+    opt = {'syd':'forward/traces',
            'trd':'../Uobs/',
            'fmt':'h5',
            'nam':['all'],
@@ -62,9 +62,12 @@ def costFunction(iter, mu, lamb, R_lamb, R_mu, x_values, y_values, z_values):
                 misfit = np.linalg.norm((trace_synthetic.displ_values(m, direction)[::-1] - trace_truth.displ_values(m, direction)[::-1]))**2
     
     totalMisfit = np.sum(misfit)
+    print(f"Total misfit : {totalMisfit}")
 
     res_grad_lamb = integrate_on_volume(lamb, x_values, y_values, z_values)
+    print(f"Grad lambda : {res_grad_lamb}")
     res_grad_mu = integrate_on_volume(mu, x_values, y_values, z_values)
+    print(f"Grad mu : {res_grad_mu}")
 
     cost = 1/2*(totalMisfit + R_lamb*res_grad_lamb + R_mu*res_grad_mu)
 
@@ -76,13 +79,14 @@ def costFunction(iter, mu, lamb, R_lamb, R_mu, x_values, y_values, z_values):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(prefix_chars='@')
     parser.add_argument('@@iter',type=int,help="iteration number")
+    iter = parser.parse_args().__dict__["iter"]
 
     # We get the data from the gradient_values file
     with open(f"output_files/gradient_values_{iter}.txt", "r") as f:
         data = json.loads(f.readline().strip())
-        mu = data['mu']
-        lamb = data['lamb']
-        nodes = data['nodes']
+        mu = np.array(data['mu'])
+        lamb = np.array(data['lambda'])
+        nodes = np.array(data['nodes'])
     iter = parser.parse_args().__dict__['iter']
 
     # We process mu and lambda to get a 3D array

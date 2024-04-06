@@ -79,9 +79,6 @@ class SnapshotsSEM3D(object):
             self.snapfile['np'] = [self.rank*(qc+1)+q for q in range(qc+1)]
         else:
             self.snapfile['np'] = [rc*(qc+1)+(self.rank-rc)*qc+q for q in range(qc)]
-        
-        print(f"np {self.snapfile['np']}")
-        print(f"nt {self.snapfile['nt']}")
 
         print("Rank {:d} - file range {}".format(self.rank,self.snapfile['np']))
 
@@ -178,8 +175,6 @@ class SnapshotsSEM3D(object):
                 for t in range(2,self.snapfile['nt']+1):
                     self.dtmp = np.array([])
                     for g in self.snapfile['np']:
-                        print(self.wkd)
-                        print('Rsem{:>04d}/sem_field.{:>04d}.h5'.format(t,g))
                         with hf.File(osj(self.wkd,'Rsem{:>04d}/sem_field.{:>04d}.h5'.format(t,g)),'r') as h5f:
                             if self.dtmp.size == 0:
                                 self.dtmp=h5f[v][...]
@@ -200,6 +195,7 @@ def ParseCL():
                                                             'eps_dev_xy','eps_dev_yz',
                                                             'eps_dev_xz'],
                         help="Select snapshot")
+    parser.add_argument('@@iter', type=int, help="Number of the iteration")
     opt = parser.parse_args().__dict__
     
     return opt
@@ -225,7 +221,7 @@ def GetSnapshots(comm,size,rank):
     snp_forward.parse()
     snp_backward.parse()
 
-    return snp_forward, snp_backward
+    return snp_forward, snp_backward, opt["iter"]
     
 
 def main():
@@ -238,7 +234,7 @@ def main():
     rank = 0#comm.Get_rank()    # Get the current rank
     
     print("Récupération des snapshots forward et backward")
-    snp_forward, snp_backward = GetSnapshots(comm,size,rank)
+    snp_forward, snp_backward, iter = GetSnapshots(comm,size,rank)
     print("Récupération terminée !")
 
     # Definition of variables
@@ -259,54 +255,53 @@ def main():
 
     g_reg_lambda = M*snp_forward.dset["Lamb"]
     g_reg_mu = M*snp_forward.dset["Mu"]
+    print(f"dim g_reg_mu : {g_reg_mu.size}")
 
-    g_mis_lambda = np.zeros(Nodes.shape)
-    g_mis_mu = np.zeros(Nodes.shape)
+    g_mis_lambda = np.zeros(Nodes.shape[0])
+    g_mis_mu = np.zeros(Nodes.shape[0])
+    print(f"dim g_mis_mu : {g_mis_mu.size}")
 
     for element_idx, element in enumerate(Elements):
         # Compute g_mis_lambda
         temp_fw = np.sum([dset_fw[f"eps_dev_{direction}"][element_idx][0] for direction in directions_aa], axis=0)
         temp_bw = np.sum([dset_bw[f"eps_dev_{direction}"][element_idx][0] for direction in directions_aa], axis=0)
 
-        temp = np.dot(temp_fw * temp_bw) * dt / 8
+        temp = np.dot(temp_fw, temp_bw) * dt / 8
 
         for node_idx in element:
-            g_mis_lambda[element[node_idx]] -= temp * Jac[element[node_idx]]
+            g_mis_lambda[node_idx] -= temp * Jac[node_idx]
         
         # Compute g_mis_mu
-        temp_ii = np.array([
-            np.dot(dset_fw[f"eps_dev_{direction}"][element_idx][0] * dset_bw[f"eps_dev_{direction}"][element_idx][0])
+        temp_ii = np.sum([
+            np.dot(dset_fw[f"eps_dev_{direction}"][element_idx][0], dset_bw[f"eps_dev_{direction}"][element_idx][0])
             for direction in directions_aa
         ])
-        temp_ij = np.array([
+        temp_ij = np.sum([
             np.dot(dset_fw[f"eps_dev_{direction}"][element_idx][0], dset_bw[f"eps_dev_{direction}"][element_idx][0])
             for direction in directions_ab
         ])
 
         # We multiply by 2 for the off-diagonal terms and for the diagonal terms (according to the formula)
-        temp = 2 * np.sum(temp_ii + temp_ij) * dt / 8
+        temp = 2 * (temp_ii + temp_ij) * dt / 8
 
         for node_idx in element:
-            g_mis_mu[element[node_idx]] -= temp * Jac[element[node_idx]]
+            g_mis_mu[node_idx] -= temp * Jac[node_idx]
 
     ### Computation of g_lambda and g_mu
     print("Calcul des gradients de lambda et mu en fonction de la fonction de coût")
     g_lambda = (g_reg_lambda + g_mis_lambda)/M
     g_mu = (g_reg_mu + g_mis_mu)/M
 
-    # unique_values,count = np.unique(snp.dset['ElementsGlob'],return_counts=True)
-    # print(unique_values,count)
-    #MPI.Finalize()
+    return iter, {"g_lambda":g_lambda.tolist(), "g_mu":g_mu.tolist(),
+            "M":M.tolist(), "nodes":Nodes.tolist(),
+            "lambda":snp_forward.dset["Lamb"].tolist(), "mu":snp_forward.dset["Mu"].tolist()}
 
-    return {"g_lambda":list(g_lambda), "g_mu":list(g_mu), "M":list(M),
-            "nodes":list(Nodes), "lambda":snp_forward.dset["Lamb"], "mu":snp_forward.dset["Mu"]}
-
-if __name__=="__main__":
+if __name__=="__main__":    
     print("Lancement du script pour le calcul du gradient")
-    res = main()
+    iter, res = main()
 
     print("Ecriture des résultats dans le fichier de sortie.")
-    with open(f"output_files/gradient_values{iter}.txt", "w") as f:
+    with open(f"output_files/gradient_values_{iter}.txt", "w") as f:
         f.write(json.dumps(res))
 
     print("Calcul du gradient terminé !")

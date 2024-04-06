@@ -1,10 +1,10 @@
 #!/bin/bash
-#SBATCH --job-name=FULL_PROJECT_SEISM
+#SBATCH --job-name=SCRIPT_PERF
 #SBATCH --nodes=1
 #SBATCH --ntasks=32
-#SBATCH --time=12:00:00
-#SBATCH --output=output.txt
-#SBATCH --error=error.txt 
+#SBATCH --time=1:00:00
+#SBATCH --output=output_perf.txt
+#SBATCH --error=error_perf.txt 
 #SBATCH --partition=cpu_prod
 
 echo "*******************************************************************************************"
@@ -25,4 +25,4 @@ echo "Modules loaded successfully!"
 echo -e "-----------------------------------"
 
 # Launch the python script
-python3 full_script.py
+python3 script_perf.py

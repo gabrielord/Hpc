@@ -1,7 +1,7 @@
 .env
-./pysem/parse_h5_traces.cpython-312.pyc
-*/res*
-*/traces*
+**.pyc
+**/res*
+**/traces*
 
 **sandbox.*
 

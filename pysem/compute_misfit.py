@@ -11,21 +11,24 @@ def plot_misfit(m, direction, trace_truth, trace_synthetic, misfit):
     Function to display the misfit for monitor m according to a given direction
     """
     plt.clf()
-    plt.figure(figsize=(10, 10))
-    plt.subplot(2, 1, 1)
-    plt.title(f"Grand truth and synthetic traces for monitor {m} and direction {direction}")
-    plt.plot(trace_truth.Time, trace_truth.displ_values(m, direction), "-g", label='Grand truth', alpha=0.6)
-    plt.plot(trace_truth.Time, trace_synthetic.displ_values(m, direction), "-r", label='Synthetic', alpha=0.6)
+    fig, ax = plt.subplots(2,1)
+    ax[0].set_title(f"Grand truth and synthetic traces for monitor {m} and direction {direction}")
+    ax[0].plot([0,2], [0,0], "k--")
+    ax[0].plot(trace_truth.Time, trace_truth.displ_values(m, direction), "-g", label='Grand truth', alpha=0.8)
+    ax[0].plot(trace_truth.Time, trace_synthetic, "-r", label='Synthetic', alpha=0.8)
 
-    plt.legend()
-    plt.margins(0)
+    ax[0].legend()
 
-    plt.subplot(2, 1, 2)
-    plt.title(f"Misfit between grand truth and synthetic traces for monitor {m} and direction {direction}")
-    plt.plot(trace_truth.Time, misfit[::-1], "-r", label='Misfit', alpha=0.8)
-    plt.legend()
+    ax[1].set_title(f"Misfit for monitor {m} and direction {direction}")
+    ax[1].plot([0,2], [0,0], "k--")
+    ax[1].plot(trace_truth.Time, misfit[::-1], "-r", label='Misfit', alpha=0.8)
+    ax[1].legend()
 
-    plt.savefig(f"input_files/monitors_misfit/plot_{m}_{direction}.png")
+    fig.tight_layout()
+
+    os.makedirs("monitors_misfit", exist_ok=True)
+    print(f"monitors_misfit/plot_{m}_{direction}.png")
+    plt.savefig(f"monitors_misfit/plot_{m}_{direction}.png")
 
 
 
@@ -75,12 +78,14 @@ def generate_misfit_files():
                 for i in range(len(misfit)):
                     f.write(f"{trace_truth.Time[i]}, {misfit[i]}\n")
                     
-            """
+            
             if dt_gt != dt_synth:
-                plot_misfit(m, direction, trace_truth, synthetic_extrapolated, misfit)
+                plot_misfit(m, direction, trace_truth,
+                synthetic_extrapolated, misfit)
             else:
-                plot_misfit(m, direction, trace_truth, trace_synthetic, misfit)
-            """
+                plot_misfit(m, direction, trace_truth,
+                trace_synthetic.displ_values(m, direction), misfit)
+            
             print('Done !')
 
 
