@@ -186,9 +186,14 @@ if __name__=='__main__':
     parser = argparse.ArgumentParser(prefix_chars='@')
     parser.add_argument('@@prop',type=str,nargs='+',default= ['la','mu'],help="list of properties to be generated")
     parser.add_argument('@@iter',type=int,help="iteration number")
+    parser.add_argument('@@alpha_lamb',type=float,help="lambda step")
+    parser.add_argument('@@alpha_mu',type=float,help="mu step")
     opt = parser.parse_args().__dict__
 
     with open(f"output_files/gradient_values_{iter}.txt", "r") as f:
         data = json.loads(f.readline().strip())
+
+    alpha_lamb = opt['@@alpha_lamb']
+    alpha_mu = opt['@@alpha_mu']
     
-    heterogeneous_mat(data["lambda"],data["mu"],data["Nodes"])
+    heterogeneous_mat(alpha_lamb*data["lambda"],alpha_mu*data["mu"],data["Nodes"])

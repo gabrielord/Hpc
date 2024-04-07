@@ -232,6 +232,8 @@ def main():
     comm = None#MPI.COMM_WORLD               # Get communicator
     size = 1#comm.Get_size()    # Get size of communicator
     rank = 0#comm.Get_rank()    # Get the current rank
+
+    R_lam, R_mu = 1, 1
     
     print("Récupération des snapshots forward et backward")
     snp_forward, snp_backward, iter = GetSnapshots(comm,size,rank)
@@ -289,8 +291,8 @@ def main():
 
     ### Computation of g_lambda and g_mu
     print("Calcul des gradients de lambda et mu en fonction de la fonction de coût")
-    g_lambda = (g_reg_lambda + g_mis_lambda)/M
-    g_mu = (g_reg_mu + g_mis_mu)/M
+    g_lambda = (R_lam * g_reg_lambda + g_mis_lambda)/M
+    g_mu = (R_mu * g_reg_mu + g_mis_mu)/M
 
     return iter, {"g_lambda":g_lambda.tolist(), "g_mu":g_mu.tolist(),
             "M":M.tolist(), "nodes":Nodes.tolist(),

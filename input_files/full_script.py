@@ -114,9 +114,9 @@ def main():
             cmd = f"mpirun -np 32 " + \
                 f"-map-by ppr:1:core:PE=1 " + \
                 f"sem3d.exe"
-            f = open(f"output_files/forward_{iter}.solver", "w")
-            subprocess.run(cmd, shell=True, stdout=f)
-            f.close()
+            with open(f"output_files/forward_{iter}.solver", "w") as f:
+                subprocess.run(cmd, shell=True, stdout=f)
+            
             write_output("\t- Move the output files...")
             os.system("rm -r forward/*")
             os.system("mv traces forward")
@@ -193,11 +193,31 @@ def main():
 
         # Calculate the search direction
         write_output(f"\n==> [{get_current_time()}] Calculating the search direction...")
+        m = 10
+        if iter == 0:
+            y_mu_stored = []
+            y_lamb_stored = []
+            s_mu_stored = []
+            s_lamb_stored = []
+            nabla_mu = data["g_mu"] # initial gradient 
+            nabla_lamb = data["g_lambda"]
+        
+        grad_mu_old = nabla_mu[:]
+        grad_lamb_old = nabla_lamb[:]
 
-        # Calculate the step lengths
-        write_output(f"\n==> [{get_current_time()}] Calculating the step lengths...")
-        # Calculate the search direction
-        write_output(f"\n==> [{get_current_time()}] Calculating the search direction...")
+        with open("output_files/data_for_search_direction.txt", "w") as f:
+            f.write(json.dumps({"nabla_mu": list(nabla_mu), "nabla_lamb": list(nabla_lamb), "s_mu": list(s_mu_stored), "s_lamb": list(s_lamb_stored), "y_mu": list(y_mu_stored), "y_lamb": list(y_lamb_stored)}))
+
+        cmd = f"mpirun -np 1 " + \
+                f"python3 ../pysem/step_direction.py @@iter {iter} @@data_filename output_files/data_for_search_direction.txt"
+        with open(f"output_files/step_direction_{iter}.output", "w") as f:
+            subprocess.run(cmd, shell=True, stdout=f)
+        
+        ### We read the output values of s_mu and s_lambda
+        with open(f"output_files/step_direction_{iter}.txt", "r") as f:
+            data = json.loads(f.read())
+            s_mu = np.array(data["s_mu"])
+            s_lambda = np.array(data["s_lambda"])
 
         # Calculate the step lengths
         write_output(f"\n==> [{get_current_time()}] Calculating the step lengths...")
@@ -209,11 +229,9 @@ def main():
                 alpha_mu /= xi
 
             ### We update the material parameters
-            Lambda -= alpha_lamb * s_lambda
-            Mu -= alpha_mu * s_mu
             write_output(f"\n\t--> [{get_current_time()}] Updating the material parameters...")
             cmd = f"mpirun -np 1 " + \
-                  f"python3 ../pysem/generate_h5_materials.py @@iter {iter}"
+                  f"python3 ../pysem/generate_h5_materials.py @@iter {iter} @@alpha_lamb {alpha_lamb} @@alpha_mu {alpha_mu}"
             with open(f"output_files/materials_{iter}.output", "w") as f:
                 subprocess.run(cmd, shell=True, stdout=f)
             
@@ -242,7 +260,7 @@ def main():
             os.system("mv res forward/res")
             os.system(f"mv stat.log output_files/stat_forward_{iter+1}.log")
 
-            ## We determine the cost_function
+            ## We determinate the cost_function
             write_output(f"\n\n2. [{get_current_time()}] Determining the cost...")
             # Compute the cost function
             write_output(f"\n==> [{get_current_time()}] Computing the cost function...")
@@ -251,11 +269,16 @@ def main():
             # We get the output values
             write_output(f"\n==> [{get_current_time()}] Getting the resulting output values...")
             newJ = get_output(f"output_files/cost_{iter+1}.txt")
+        
+        ### We update the variables for the next iteration of L-BFGS
+        step_mu = - alpha_mu * nabla_mu
+        step_lamb = - alpha_lamb * nabla_lamb
 
-
+        s_mu_stored.append(step_mu)
+        s_lamb_stored.append(step_lamb)
 
         ### We increment the iteration counter
-        iter += 10
+        iter += 1
         J = newJ
 
 
